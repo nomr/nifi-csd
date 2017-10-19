@@ -84,8 +84,8 @@
   "roles": [
     {
       "name": "NIFI_TLS_SERVER",
-      "label": "NiFi TLS Server",
-      "pluralLabel": "NiFi TLS Servers",
+      "label": "TLS Server",
+      "pluralLabel": "TLS Servers",
       "jvmBased": "true",
       "startRunner": {
         "program": "scripts/control.sh",
@@ -215,8 +215,8 @@
 
     {
       "name": "NIFI_SERVER",
-      "label": "NiFi Server",
-      "pluralLabel": "NiFi Servers",
+      "label": "Node",
+      "pluralLabel": "Nodes",
       "startRunner": {
         "program": "scripts/control.sh",
         "args": [ "nifi-run" ],
@@ -664,6 +664,13 @@
 
               { "key": "cdh.stateManagement.provider.type", "value": "cluster-provider" }
             ]
+          }
+        ],
+        "peerConfigGenerators": [
+          {
+            "filename": "tls-server.properties",
+            "params": [ "nifi_tls_port", "nifi_tls_token" ],
+            "roleName": "NIFI_TLS_SERVER"
           }
         ],
         "auxConfigGenerators": [
