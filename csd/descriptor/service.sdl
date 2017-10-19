@@ -88,8 +88,8 @@
       "pluralLabel": "NiFi TLS Servers",
       "jvmBased": "true",
       "startRunner": {
-        "program": "scripts/tls-server.sh",
-        "args" : [ "run" ],
+        "program": "scripts/control.sh",
+        "args" : [ "tls-start" ],
         "environmentVariables" : {
           "JAVA_HOME": "${java_home}"
         }
@@ -219,31 +219,34 @@
       "pluralLabel": "NiFi Servers",
       "startRunner": {
         "program": "scripts/control.sh",
-        "args": [ "run" ],
+        "args": [ "nifi-run" ],
         "environmentVariables" : {
           "JAVA_HOME": "${java_home}",
           "NIFI_HOME": "${nifi_home}",
           "NIFI_PID_DIR": "${nifi_home}",
-          "NIFI_LOG_DIR": "/var/log/nifi"
+          "NIFI_LOG_DIR": "/var/log/nifi",
+          "NIFI_SSL_ENABLED": "${ssl_enabled}"
         }
       },
       "stopRunner": {
         "program": "scripts/control.sh",
-        "args": [ "stop" ],
+        "args": [ "nifi-stop" ],
         "environmentVariables" : {
           "JAVA_HOME": "${java_home}",
           "NIFI_HOME": "${nifi_home}",
           "NIFI_PID_DIR": "${nifi_home}",
-          "NIFI_LOG_DIR": "/var/log/nifi"
+          "NIFI_LOG_DIR": "/var/log/nifi",
+          "NIFI_SSL_ENABLED": "${ssl_enabled}"
         }
       },
       "externalLink" : {
         "name" : "webserver_web_ui",
-        "label" : "NiFi/HTTP UI",
-        "url" : "http://${host}:${nifi_web_http_port}/nifi"
+        "label" : "NiFi UI",
+        "url" : "http://${host}:${nifi_web_http_port}/nifi",
+        "secureUrl" : "https://${host}:${nifi_web_https_port}/nifi"
       },
       "topology": {
-        "minInstances": "1",
+        "minInstances": "0",
         "softMinInstances": "3"
       },
       "logging": {
@@ -301,73 +304,40 @@
           {
             "filename": "authorizers-access-policy-provider-file.hadoop_xml",
             "configFormat": "hadoop_xml",
-            "includedParams": [
-              "authorizers_access_policy_file_user_group_provider",
-              "authorizers_access_policy_file_initial_admin_identity"
-            ],
-            "additionalConfigs": [
-              {
-                "key": "identifier",
-                "value": "file-access-policy-provider"
-              },
-              {
-                "key": "class",
-                "value": "org.apache.nifi.authorization.FileAccessPolicyProvider"
-              },
-              {
-                "key": "Users File",
-                "value": "${nifi_home}/authorizations.xml"
-              },
-              {
-                "key": "cdh.authorizers.type",
-                "value": "accessPolicyProvider"
-              }
+            "includedParams": [ ],
+             "additionalConfigs": [
+              { "key": "identifier", "value": "file-access-policy-provider" },
+              { "key": "class", "value": "org.apache.nifi.authorization.FileAccessPolicyProvider" },
+              { "key": "User Group Provider", "value": "${authorizers_access_policy_file_user_group_provider}"},
+              { "key": "Initial Admin Identity", "value": "${authorizers_access_policy_file_initial_admin_identity}"},
+              { "key": "Authorizations File", "value": "${nifi_home}/authorizations.xml"},
+
+              { "key": "cdh.authorizers.type", "value": "accessPolicyProvider" }
             ]
           },
           {
             "filename": "authorizers-authorizer-managed.hadoop_xml",
             "configFormat": "hadoop_xml",
-            "includedParams": [
-              "authorizers_authorizer_managed_access_policy_provider"
-            ],
+            "includedParams": [ ],
             "additionalConfigs": [
-              {
-                "key": "identifier",
-                "value": "managed-authorizer"
-              },
-              {
-                "key": "class",
-                "value": "org.apache.nifi.authorization.StandardManagedAuthorizer"
-              },
-              {
-                "key": "cdh.authorizers.type",
-                "value": "authorizer"
-              }
+              { "key": "identifier", "value": "managed-authorizer" },
+              { "key": "class", "value": "org.apache.nifi.authorization.StandardManagedAuthorizer" },
+              { "key": "Access Policy Provider", "value": "${authorizers_authorizer_managed_access_policy_provider}" },
+
+              { "key": "cdh.authorizers.type", "value": "authorizer" }
             ]
           },
           {
             "filename": "authorizers-user-group-provider-file.hadoop_xml",
             "configFormat": "hadoop_xml",
-            "includedParams": [
-              "authorizers_user_group_provider_file_initial_identity"
-            ],
+            "includedParams": [ ],
             "additionalConfigs": [
-              {
-                "key": "identifier",
-                "value": "file-user-group-provider"
-              },
-              {
-                "key": "class",
-                "value": "org.apache.nifi.authorization.FileUserGroupProvider"
-              },
-              {
-                "key": "Users File",
-                "value": "${nifi_home}/users.xml"
-              },
-              {
-                "key": "cdh.authorizers.type",
-                "value": "userGroupProvider"
-              }
+              { "key": "identifier", "value": "file-user-group-provider" },
+              { "key": "class", "value": "org.apache.nifi.authorization.FileUserGroupProvider" },
+              { "key": "Initial User Identity 1", "value": "${authorizers_user_group_provider_file_initial_identity}" },
+              { "key": "Users File", "value": "${nifi_home}/users.xml" },
+
+              { "key": "cdh.authorizers.type", "value": "userGroupProvider" }
             ]
           },
           {
@@ -472,7 +442,6 @@
               "nifi_components_status_repository_buffer_size",
 
               "nifi_remote_input_host",
-              "nifi_remote_input_secure",
               "nifi_remote_input_socket_port",
               "nifi_remote_input_http_enabled",
 
@@ -533,11 +502,11 @@
               },
               {
                 "key": "nifi.authorizer.configuration.file",
-                "value": "./authorizers.xml"
+                "value": "authorizers.xml"
               },
               {
                 "key": "nifi.login.identity.provider.configuration.file",
-                "value": "./login-identity-providers.xml"
+                "value": "login-identity-providers.xml"
               },
               {
                 "key": "nifi.templates.directory",
@@ -641,6 +610,10 @@
                 "value": "${nifi_provenance_repository_warm_cache_frequency} hours"
               },
 
+              {
+                "key": "nifi_remote_input_secure",
+                "value": "${ssl_enabled}"
+              },
               {
                 "key": "nifi.remote.input.http.transaction.ttl",
                 "value": "${nifi_remote_input_http_transaction_ttl} sec"
@@ -1357,15 +1330,6 @@
            "type": "string"
          },
          {
-           "name": "nifi_remote_input_secure",
-           "label": "Site-to-Site Use SSL",
-           "description": "This indicates whether communication between this instance of NiFi and remote NiFi instances should be secure. By default, it is set to false. In order for secure site-to-site to work, set the property to true. Many other Security Properties (below) must also be configured.",
-           "configName": "nifi.remote.input.secure",
-           "required": true,
-           "type": "boolean",
-           "default": false
-         },
-         {
            "name": "nifi_remote_input_socket_port",
            "label": "Site-to-Site Port Number",
            "description": "The remote input socket port for Site-to-Site communication. By default, it is blank, but it must have a value in order to use RAW socket as transport protocol for Site-to-Site.",
@@ -1376,8 +1340,8 @@
          },
          {
            "name": "nifi_remote_input_http_enabled",
-           "label": "Site-to-Site HTTP(S) Enabled",
-           "description": "Specifies whether HTTP Site-to-Site should be enabled on this host. By default, it is set to true. Whether a Site-to-Site client uses HTTP or HTTPS is determined by nifi.remote.input.secure. If it is set to true, then requests are sent as HTTPS to nifi.web.https.port. If set to false, HTTP requests are sent to nifi.web.http.port.",
+           "label": "Site-to-Site HTTP/S Enabled",
+           "description": "Specifies whether HTTP(or HTTPS) Site-to-Site should be enabled on this host.",
            "configName": "nifi.remote.input.http.enabled",
            "required": true,
            "type": "boolean",
@@ -1443,7 +1407,8 @@
            "description": "The HTTPS port",
            "configName": "nifi.web.https.port",
            "type": "port",
-           "min": 1024
+           "min": 1024,
+           "default": 8443
          },
          {
            "name": "nifi_web_https_port_forwarding",

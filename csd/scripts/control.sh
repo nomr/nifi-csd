@@ -112,7 +112,61 @@ convert_prefix_hadoop_xml() {
     done
 }
 
-init() {
+hadoop_xml_to_json()
+{
+    local file=$1
+
+    xsltproc aux/hadoop2element-value.xslt ${file}.hadoop_xml > ${file}.xml
+    xsltproc aux/xml2json.xslt ${file}.xml | jq '
+      .configuration |
+      .port=(.port| tonumber) |
+      .days=(.days | tonumber) |
+      .keySize=(.keySize | tonumber) |
+      .reorderDn=(.reorderDn == "true")' > ${file}.json
+}
+
+tls_init() {
+    # NiFi 1.4.0 was compiled with 1.8.0
+    locate_java8_home $1
+
+    # Simulate NIFI_TOOLKIT_HOME
+    NIFI_TOOLKIT_HOME=$(pwd)
+    [ -e lib ] || ln -s ${CDH_NIFI_TOOLKIT_HOME}/lib .
+
+    hadoop_xml_to_json server
+}
+
+tls_run() {
+    LIBS="${NIFI_TOOLKIT_HOME}/lib/*"
+
+    CLASSPATH=".:${LIBS}"
+
+    export JAVA_HOME="$JAVA_HOME"
+    export NIFI_TOOLKIT_HOME="$NIFI_TOOLKIT_HOME"
+
+    umask 0077
+
+    case "$1" in
+        run)
+            exec "${JAVA}" -cp "${CLASSPATH}" \
+                ${JAVA_OPTS:--Xms12m -Xmx24m} \
+                ${CSD_JAVA_OPTS} \
+                org.apache.nifi.toolkit.tls.TlsToolkitMain \
+                server -F \
+                --configJsonIn server.json
+        ;;
+        deploy)
+            echo "deploy script"
+        ;;
+    esac
+}
+
+tls() {
+    tls_init "$1"
+    tls_run "$@"
+}
+
+nifi_init() {
     # Unlimit the number of file descriptors if possible
     unlimitFD
 
@@ -248,6 +302,12 @@ update_nifi_properties() {
     sed -i \
         -e "s|@@CDH_NIFI_HOME@@|${CDH_NIFI_HOME}|g" \
         nifi.properties
+
+    if [ $NIFI_SSL_ENABLED == "true" ]; then
+        sed -i \
+            -e 's/nifi.web.http\..*//' \
+            nifi.properties
+    fi
 }
 
 init_bootstrap() {
@@ -303,7 +363,7 @@ update_logback_xml() {
     sed -i 's/<configuration>/<configuration scan="true" scanPeriod="30 seconds">/' logback.xml
 }
 
-run() {
+nifi_run() {
     run_nifi_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} org.apache.nifi.bootstrap.RunNiFi $@"
 
     if [ "$1" = "run" ]; then
@@ -321,15 +381,17 @@ run() {
     echo
 }
 
-main() {
-    init "$1"
-    run "$@"
+nifi() {
+    nifi_init "$1"
+    nifi_run "$@"
 }
 
-
 case "$1" in
-    stop|run|status|dump|env)
-        main "$@"
+    nifi-run|nifi-stop)
+        nifi ${1//nifi-/} "${@:2}"
+        ;;
+    tls-run|tls-deploy)
+        tls ${1//tls-/} "${@:2}"
         ;;
     *)
         echo "Usage nifi {stop|run|status|dump|env}"
