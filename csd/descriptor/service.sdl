@@ -89,7 +89,7 @@
       "jvmBased": "true",
       "startRunner": {
         "program": "scripts/control.sh",
-        "args" : [ "tls-start" ],
+        "args" : [ "tls-run" ],
         "environmentVariables" : {
           "JAVA_HOME": "${java_home}"
         }
@@ -188,7 +188,7 @@
            "required": true,
            "type": "port",
            "min": 1024,
-           "default": 22443
+           "default": 10443
          },
          {
            "name": "nifi_tls_key_store_password",
@@ -644,9 +644,9 @@
               { "key": "id", "value": "local-provider" },
               { "key": "class", "value": "org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider" },
               { "key": "Checkpoint Interval", "value": "${state_management_local_provider_checkpoint_interval} mins" },
-              { "key": "Directory", "value": "state_management_local_provider_directory" },
-              { "key": "Always Sync", "value": "state_management_local_provider_always_sync"},
-              { "key": "Partitions", "value": "state_management_local_provider_partitions" },
+              { "key": "Directory", "value": "${state_management_local_provider_directory}" },
+              { "key": "Always Sync", "value": "${state_management_local_provider_always_sync}"},
+              { "key": "Partitions", "value": "${state_management_local_provider_partitions}" },
 
               { "key": "cdh.stateManagement.provider.type", "value": "local-provider" }
             ]
@@ -1310,7 +1310,8 @@
            "configName": "nifi.remote.input.socket.port",
            "required": false,
            "type": "port",
-           "min": 1024
+           "min": 1024,
+           "default": 8022
          },
          {
            "name": "nifi_remote_input_http_enabled",
@@ -1348,7 +1349,7 @@
            "required": false,
            "type": "port",
            "min": 1024,
-           "default": 8080
+           "default": 9091
          },
          {
            "name": "nifi_web_http_port_forwarding",
@@ -1382,7 +1383,7 @@
            "configName": "nifi.web.https.port",
            "type": "port",
            "min": 1024,
-           "default": 8443
+           "default": 9090
          },
          {
            "name": "nifi_web_https_port_forwarding",
