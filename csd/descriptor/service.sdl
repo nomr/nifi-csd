@@ -373,25 +373,14 @@
             "filename": "login-identity-providers-kerberos.hadoop_xml",
             "configFormat": "hadoop_xml",
             "includedParams": [
-              "login_identity_providers_kerberos_default_realm"
             ],
             "additionalConfigs": [
-              {
-                "key": "identifier",
-                "value": "kerberos-provider"
-              },
-              {
-                "key": "class",
-                "value": "org.apache.nifi.kerberos.KerberosProvider"
-              },
-              {
-                "key": "Authentication Expiration",
-                "value": "${login_identity_providers_kerberos_authentication_expiration} hours"
-              },
-              {
-                "key": "cdh.login.identity.providers.type",
-                "value": "provider"
-              }
+              { "key": "identifier", "value": "kerberos-provider" },
+              { "key": "class", "value": "org.apache.nifi.kerberos.KerberosProvider" },
+              { "key": "Authentication Expiration", "value": "${login_identity_providers_kerberos_authentication_expiration} hours" },
+              { "key": "Default Realm", "value": "${login_identity_providers_kerberos_default_realm}"},
+
+              { "key": "cdh.login.identity.providers.type", "value": "provider" }
             ]
           },
           {
@@ -635,60 +624,45 @@
               {
                 "key": "nifi.sensitive.props.provider",
                 "value": "BC"
+              },
+
+              {
+                "key": "nifi.security.keystoreType",
+                "value": "JKS"
+              },
+              {
+                "key": "nifi.security.truststoreType",
+                "value": "JKS"
               }
 	    ]
           },
           {
             "filename": "state-management-local-provider.hadoop_xml",
             "configFormat": "hadoop_xml",
-            "includedParams": [
-              "state_management_local_provider_directory",
-              "state_management_local_provider_always_sync",
-              "state_management_local_provider_partitions"
-            ],
+            "includedParams": [ ],
             "additionalConfigs": [
-              {
-                "key": "id",
-                "value": "local-provider"
-              },
-              {
-                "key": "class",
-                "value": "org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider"
-              },
-              {
-                "key": "Checkpoint Interval",
-                "value": "${state_management_local_provider_checkpoint_interval} mins"
-              },
-              {
-                "key": "cdh.stateManagement.provider.type",
-                "value": "local-provider"
-              }
+              { "key": "id", "value": "local-provider" },
+              { "key": "class", "value": "org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider" },
+              { "key": "Checkpoint Interval", "value": "${state_management_local_provider_checkpoint_interval} mins" },
+              { "key": "Directory", "value": "state_management_local_provider_directory" },
+              { "key": "Always Sync", "value": "state_management_local_provider_always_sync"},
+              { "key": "Partitions", "value": "state_management_local_provider_partitions" },
+
+              { "key": "cdh.stateManagement.provider.type", "value": "local-provider" }
             ]
           },
           {
             "filename": "state-management-zk-provider.hadoop_xml",
             "configFormat": "hadoop_xml",
-            "includedParams": [
-              "state_management_zk_provider_root_node",
-              "state_management_zk_provider_access_control"
-            ],
+            "includedParams": [ ],
             "additionalConfigs": [
-              {
-                "key": "id",
-                "value": "zk-provider"
-              },
-              {
-                "key": "class",
-                "value": "org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider"
-              },
-              {
-                "key": "Session Timeout",
-                "value": "${state_management_zk_provider_session_timeout} seconds"
-              },
-              {
-                "key": "cdh.stateManagement.provider.type",
-                "value": "cluster-provider"
-              }
+              { "key": "id", "value": "zk-provider" },
+              { "key": "class", "value": "org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider" },
+              { "key": "Session Timeout", "value": "${state_management_zk_provider_session_timeout} seconds" },
+              { "key": "Root Node", "value": "${state_management_zk_provider_root_node}" },
+              { "key": "Access Control", "value": "${state_management_zk_provider_access_control}" },
+
+              { "key": "cdh.stateManagement.provider.type", "value": "cluster-provider" }
             ]
           }
         ],
@@ -933,8 +907,8 @@
           "description": "The identififer of the desired Login Identity Provider in login-identity-provider.xml (or safety valve).",
           "configName": "nifi.security.user.login.identity.provider",
           "required": false,
-          "type": "string",
-          "conformRegex": "kerberos-provider|"
+          "type": "string_enum",
+          "validValues": [ "", "kerberos-provider"]
         },
         {
           "name": "nifi_flowfile_repository_implementation",
@@ -1518,8 +1492,8 @@
           "description": "Specifies which Access Controls will be applied to the ZooKeeper ZNodes that are created by this State Provider. This value must be set to one of: - Open  : ZNodes will be open to any ZooKeeper client.  - CreatorOnly  : ZNodes will be accessible only by the creator. The creator will have full access to create children, read, write, delete, and administer the ZNodes.  This option is available only if access to ZooKeeper is secured via Kerberos or if a Username and Password are set.",
           "configName": "Access Control",
           "required": true,
-          "type": "string",
-          "conformRegex": "Open|CreatorOnly",
+          "type": "string_enum",
+          "validValues": [ "Open","CreatorOnly"],
           "default": "Open"
         }
       ],
@@ -1529,6 +1503,7 @@
         "enabledConfigName": "nifi.security.ssl.enabled",
         "keystoreLocationConfigName": "nifi.security.keystore",
         "keystorePasswordConfigName": "nifi.security.keystorePasswd",
+        "keyPasswordOptionality" : "optional",
         "keystoreKeyPasswordConfigName": "nifi.security.keyPasswd"
       },
       "sslClient": {
