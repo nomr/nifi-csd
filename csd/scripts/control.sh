@@ -166,12 +166,30 @@ tls() {
     tls_run "$@"
 }
 
+tls_client_init() {
+    hadoop_xml_to_json tls-client
+
+    CLASSPATH=".:${CDH_NIFI_TOOLKIT_HOME}/lib"
+
+    "${JAVA}" -cp "${CLASSPATH}" \
+                ${JAVA_OPTS:--Xms12m -Xmx24m} \
+                ${CSD_JAVA_OPTS} \
+                org.apache.nifi.toolkit.tls.TlsToolkitMain \
+                client -F \
+                -c `hostname` \
+                --configJson tls-client.json
+
+}
+
 nifi_init() {
     # Unlimit the number of file descriptors if possible
     unlimitFD
 
     # NiFi 1.4.0 was compiled with 1.8.0
     locate_java8_home $1
+
+    # TLS Client Init
+    tls_client_init
 
     # Simulate NIFI_HOME
     [ -d conf ] || mkdir conf
