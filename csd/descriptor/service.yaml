@@ -1,24 +1,67 @@
-compatibility:
-  cdhVersion: {max: '5', min: 5.7.0}
-description: Apache's NiFi service. <span class="error">Requires Java 8.</span>
-icon: images/icon.png
-inExpressWizard: false
-label: NiFi
-maxInstances: 1
 name: NIFI
-parameters:
-- {configName: java.home, configurableInWizard: true, default: /usr/java/jdk1.8.0_121,
-  description: Path to Java 8, label: Java 8 Home, name: java_home, pathType: serviceSpecific,
-  required: true, type: path}
-- {configName: nifi.home, configurableInWizard: true, default: /var/lib/nifi, description: NiFi's
-    service instance home directory, label: NiFi Home directory, mode: '0750', name: nifi_home,
-  pathType: localDataDir, required: true, type: path}
-- {configName: nifi.work.dir, configurableInWizard: true, default: /var/run/nifi,
-  description: NiFi's work directory, label: NiFi Work directory, mode: '0750', name: nifi_work_dir,
-  pathType: localDataDir, required: true, type: path}
+label: NiFi
+description: Apache's NiFi service. <span class="error">Requires Java 8.</span>
+version: 0.1.0
+
+compatibility:
+  cdhVersion:
+    max: '5'
+    min: 5.7.0
+
+icon: images/icon.png
+
+inExpressWizard: false
+
+runAs:
+  group: nifi
+  principal: nifi
+  user: nifi
+
+maxInstances: 1
+
 parcel:
   repoUrl: https://github.com/nomr/nifi-parcel/releases/download/v1.4.0+nifi0.3.0
   requiredTags: [nifi]
+
+serviceDependencies:
+- name: ZOOKEEPER
+  required: 'true'
+- name: TLS
+  required: 'true'
+
+rolesWithExternalLinks: [NIFI_SERVER]
+
+parameters:
+- name: java_home
+  configName: java.home
+  label: Java 8 Home
+  description: Path to Java 8
+  required: true
+  configurableInWizard: true
+  type: path
+  pathType: serviceSpecific
+  default: /usr/java/jdk1.8.0_121
+- name: nifi_home
+  configName: nifi.home
+  label: NiFi Home directory
+  description: NiFi's service instance home directory
+  required: true
+  configurableInWizard: true
+  type: path
+  pathType: localDataDir
+  mode: '0750'
+  default: /var/lib/nifi
+- name: nifi_work_dir
+  configName: nifi.work.dir
+  label: NiFi Work directory
+  description: NiFi's work directory
+  required: true
+  configurableInWizard: true
+  type: path
+  pathType: localDataDir
+  mode: '0750'
+  default: /var/run/nifi
+
 roles:
 - configWriter:
     auxConfigGenerators:
@@ -730,9 +773,4 @@ roles:
       NIFI_PID_DIR: '${nifi_home}', NIFI_SSL_ENABLED: '${ssl_enabled}'}
     program: scripts/control.sh
   topology: {minInstances: '0', softMinInstances: '3'}
-rolesWithExternalLinks: [NIFI_SERVER]
-runAs: {group: nifi, principal: nifi, user: nifi}
-serviceDependencies:
-- {name: ZOOKEEPER, required: 'true'}
-- {name: TLS, required: 'true'}
-version: 0.1.0
+
