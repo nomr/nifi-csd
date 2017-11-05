@@ -117,6 +117,7 @@ hadoop_xml_to_json()
     local file=$1
 
     xsltproc aux/hadoop2element-value.xslt ${file}.hadoop_xml > ${file}.xml
+
     xsltproc aux/xml2json.xslt ${file}.xml | jq '
       .configuration |
       .port=(.port| tonumber) |
@@ -125,49 +126,8 @@ hadoop_xml_to_json()
       .reorderDn=(.reorderDn == "true")' > ${file}.json
 }
 
-tls_init() {
-    # NiFi 1.4.0 was compiled with 1.8.0
-    locate_java8_home $1
-
-    # Simulate NIFI_TOOLKIT_HOME
-    NIFI_TOOLKIT_HOME=$(pwd)
-    [ -e lib ] || ln -s ${CDH_NIFI_TOOLKIT_HOME}/lib .
-
-    hadoop_xml_to_json server
-}
-
-tls_run() {
-    LIBS="${NIFI_TOOLKIT_HOME}/lib/*"
-
-    CLASSPATH=".:${LIBS}"
-
-    export JAVA_HOME="$JAVA_HOME"
-    export NIFI_TOOLKIT_HOME="$NIFI_TOOLKIT_HOME"
-
-    umask 0077
-
-    case "$1" in
-        run)
-            exec "${JAVA}" -cp "${CLASSPATH}" \
-                ${JAVA_OPTS:--Xms12m -Xmx24m} \
-                ${CSD_JAVA_OPTS} \
-                org.apache.nifi.toolkit.tls.TlsToolkitMain \
-                server -F \
-                --configJsonIn server.json
-        ;;
-        deploy)
-            echo "deploy script"
-        ;;
-    esac
-}
-
-tls() {
-    tls_init "$1"
-    tls_run "$@"
-}
-
 tls_client_init() {
-    hadoop_xml_to_json tls-client
+    hadoop_xml_to_json tls-conf/client
 
     CLASSPATH=".:${CDH_NIFI_TOOLKIT_HOME}/lib"
 
@@ -176,8 +136,7 @@ tls_client_init() {
                 ${CSD_JAVA_OPTS} \
                 org.apache.nifi.toolkit.tls.TlsToolkitMain \
                 client -F \
-                -c `hostname` \
-                --configJson tls-client.json
+                --configJson tls-conf/client.json
 
 }
 

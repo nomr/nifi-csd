@@ -48,7 +48,7 @@ uninstall:
 NIFI-$(VERSION): csd NIFI-$(VERSION)/images/icon.png validator.jar
 	rsync --exclude '*.swp' -a  $</ $@/
 	cat $</descriptor/service.sdl | jq ".version=\"$(subst NIFI-,,$@)\"" > $@/descriptor/service.sdl
-	java -jar validator.jar -s $@/descriptor/service.sdl || (rm -rf $@ && false)
+	java -jar validator.jar -l 'TLS' -s $@/descriptor/service.sdl || (rm -rf $@ && false)
 
 NIFI-$(VERSION).jar: NIFI-$(VERSION)
 	jar cvf $@ -C $< .

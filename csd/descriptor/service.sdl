@@ -33,6 +33,10 @@
     {
       "name": "ZOOKEEPER",
       "required": "true"
+    },
+    {
+      "name": "TLS",
+      "required": "true"
     }
   ],
 
@@ -78,142 +82,11 @@
       "type": "path",
       "pathType": "localDataDir",
       "mode": "0750"
-    },
+    }
 
-        {
-          "name": "nifi_tls_dn_prefix",
-          "label": "The DN prefix for the certificate",
-          "description": "The DN prefix to use for the CA certificate",
-          "configName": "dnPrefix",
-          "required": true,
-          "type": "string",
-          "default": "CN="
-        },
-        {
-          "name": "nifi_tls_dn_suffix",
-          "label": "The DN suffix for the certificate",
-          "description": "The DN suffx to use for the CA certificate",
-          "configName": "dnSuffix",
-          "required": true,
-          "type": "string",
-          "default": ", OU=NIFI"
-        },
-        {
-           "name": "nifi_tls_port",
-           "label": "NiFi TLS Server Port",
-           "description": "The port for the Certificate Authority to listen on.",
-           "configName": "port",
-           "required": true,
-           "type": "port",
-           "min": 1024,
-           "default": 10443
-         },
-         {
-           "name": "nifi_tls_key_store_password",
-           "label": "NiFi TLS Server KeyStore Password",
-           "description": "The TLS Server keystore password",
-           "configName": "keyStorePassword",
-           "configurableInWizard": true,
-           "sensitive": true,
-           "required": true,
-           "type": "password"
-         },
-         {
-           "name": "nifi_tls_token",
-           "label": "NiFi TLS Server Client-Server Token",
-           "description": "The token to use to prevent MITM",
-           "configName": "token",
-           "configurableInWizard": true,
-           "sensitive": true,
-           "required": true,
-           "type": "password"
-         }
   ],
 
   "roles": [
-    {
-      "name": "NIFI_TLS_SERVER",
-      "label": "TLS Server",
-      "pluralLabel": "TLS Servers",
-      "jvmBased": "true",
-      "startRunner": {
-        "program": "scripts/control.sh",
-        "args" : [ "tls-run" ],
-        "environmentVariables" : {
-          "JAVA_HOME": "${java_home}"
-        }
-      },
-      "topology": {
-        "minInstances": "0",
-        "maxInstances": "1"
-      },
-      "logging": {
-        "dir": "/var/log/nifi",
-        "filename": "tls-server.log",
-        "modifiable": false,
-        "loggingType": "log4j"
-      },
-      "configWriter": {
-        "generators": [
-          {
-            "filename": "server.hadoop_xml",
-            "configFormat": "hadoop_xml",
-            "includedParams": [
-              "nifi_tls_dn_prefix",
-              "nifi_tls_dn_suffix",
-              "nifi_tls_port",
-              "nifi_tls_key_store_password",
-              "nifi_tls_token"
-            ],
-            "additionalConfigs": [
-              {
-                "key": "days",
-                "value": "1095"
-              },
-              {
-                "key": "keySize",
-                "value": "2048"
-              },
-              {
-                "key": "keyPairAlgorithm",
-                "value": "RSA"
-              },
-              {
-                "key": "signingAlgorithm",
-                "value": "SHA256WITHRSA"
-              },
-              {
-                "key": "dn",
-                "value": "${nifi_tls_dn_prefix}${host}${nifi_tls_dn_suffix}"
-              },
-              {
-                "key": "keyStore",
-                "value": "${nifi_home}/tls-server.jks"
-              },
-              {
-                "key": "keyStoreType",
-                "value": "jks"
-              },
-              {
-                "key": "keyPassword",
-                "value": "${nifi_tls_key_store_password}"
-              },
-              {
-                "key": "caHostname",
-                "value": "${host}"
-              },
-              {
-                "key": "reorderDn",
-                "value": true
-              }
-            ]
-          }
-        ]
-      },
-      "parameters": [
-     ]
-    },
-
     {
       "name": "NIFI_SERVER",
       "label": "Node",
@@ -666,67 +539,9 @@
 
               { "key": "cdh.stateManagement.provider.type", "value": "cluster-provider" }
             ]
-          },
-
-          {
-            "filename": "tls-client.hadoop_xml",
-            "configFormat": "hadoop_xml",
-            "includedParams": [
-              "nifi_tls_dn_prefix",
-              "nifi_tls_dn_suffix",
-              "nifi_tls_port",
-              "nifi_tls_token"
-            ],
-            "additionalConfigs": [
-              {
-                "key": "days",
-                "value": "1095"
-              },
-              {
-                "key": "keySize",
-                "value": "2048"
-              },
-              {
-                "key": "keyPairAlgorithm",
-                "value": "RSA"
-              },
-              {
-                "key": "signingAlgorithm",
-                "value": "SHA256WITHRSA"
-              },
-              {
-                "key": "dn",
-                "value": "${nifi_tls_dn_prefix}${host}${nifi_tls_dn_suffix}"
-              },
-              {
-                "key": "keyStore",
-                "value": "tls-client.jks"
-              },
-              {
-                "key": "keyStoreType",
-                "value": "jks"
-              },
-              {
-                "key": "trustStore",
-                "value": "truststore.jks"
-              },
-              {
-                "key": "trustStoreType",
-                "value": "jks"
-              },
-              {
-                "key": "reorderDn",
-                "value": true
-              }
-            ]
           }
         ],
         "peerConfigGenerators": [
-          {
-            "filename": "tls-server.properties",
-            "params": [ "nifi_tls_port", "nifi_tls_token" ],
-            "roleName": "NIFI_TLS_SERVER"
-          }
         ],
         "auxConfigGenerators": [
           {
