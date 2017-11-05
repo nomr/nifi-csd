@@ -1,5 +1,6 @@
 *.swp
 *.parcel
+*.sdl
 csd/images/icon.png
 .cookie
 

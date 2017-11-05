@@ -63,172 +63,57 @@ parameters:
   default: /var/run/nifi
 
 roles:
-- configWriter:
-    auxConfigGenerators:
-    - {filename: authorizers-access-policy-provider-safety-valve.xml, sourceFilename: aux/authorizers-access-policy-provider-safety-valve.xml}
-    - {filename: authorizers-authorizer-safety-valve.xml, sourceFilename: aux/authorizers-authorizer-safety-valve.xml}
-    - {filename: authorizers-user-group-provider-safety-valve.xml, sourceFilename: aux/authorizers-user-group-provider-safety-valve.xml}
-    - {filename: bootstrap-notification-services.xml, sourceFilename: aux/bootstrap-notification-services.safety-valve-xml}
-    - {filename: login-identity-providers-safety-valve.xml, sourceFilename: aux/login-identity-providers-safety-valve.xml}
-    - {filename: state-management-safety-valve.xml, sourceFilename: aux/state-management-safety-valve.xml}
-    generators:
-    - additionalConfigs:
-      - {key: identifier, value: file-access-policy-provider}
-      - {key: class, value: org.apache.nifi.authorization.FileAccessPolicyProvider}
-      - {key: User Group Provider, value: '${authorizers_access_policy_file_user_group_provider}'}
-      - {key: Initial Admin Identity, value: '${authorizers_access_policy_file_initial_admin_identity}'}
-      - {key: Authorizations File, value: '${nifi_home}/authorizations.xml'}
-      - {key: cdh.authorizers.type, value: accessPolicyProvider}
-      configFormat: hadoop_xml
-      filename: authorizers-access-policy-provider-file.hadoop_xml
-      includedParams: []
-    - additionalConfigs:
-      - {key: identifier, value: managed-authorizer}
-      - {key: class, value: org.apache.nifi.authorization.StandardManagedAuthorizer}
-      - {key: Access Policy Provider, value: '${authorizers_authorizer_managed_access_policy_provider}'}
-      - {key: cdh.authorizers.type, value: authorizer}
-      configFormat: hadoop_xml
-      filename: authorizers-authorizer-managed.hadoop_xml
-      includedParams: []
-    - additionalConfigs:
-      - {key: identifier, value: file-user-group-provider}
-      - {key: class, value: org.apache.nifi.authorization.FileUserGroupProvider}
-      - {key: Initial User Identity 1, value: '${authorizers_user_group_provider_file_initial_identity}'}
-      - {key: Users File, value: '${nifi_home}/users.xml'}
-      - {key: cdh.authorizers.type, value: userGroupProvider}
-      configFormat: hadoop_xml
-      filename: authorizers-user-group-provider-file.hadoop_xml
-      includedParams: []
-    - additionalConfigs:
-      - {key: java, value: '${java_home}/bin/java'}
-      - {key: notification.services.file, value: bootstrap-notification-services.xml}
-      - {key: notification.max.attempts, value: '5'}
-      - {key: run.as, value: ''}
-      - {key: nifi.bootstrap.sensitive.key, value: ''}
-      configFormat: properties
-      filename: bootstrap.conf
-      includedParams: [bs_graceful_shutdown_seconds]
-    - additionalConfigs:
-      - {key: identifier, value: kerberos-provider}
-      - {key: class, value: org.apache.nifi.kerberos.KerberosProvider}
-      - {key: Authentication Expiration, value: '${login_identity_providers_kerberos_authentication_expiration}
-          hours'}
-      - {key: Default Realm, value: '${login_identity_providers_kerberos_default_realm}'}
-      - {key: cdh.login.identity.providers.type, value: provider}
-      configFormat: hadoop_xml
-      filename: login-identity-providers-kerberos.hadoop_xml
-      includedParams: []
-    - additionalConfigs:
-      - {key: nifi.flow.configuration.file, value: '${nifi_home}/flow.xml.gz'}
-      - {key: nifi.flow.configuration.archive.dir, value: '${nifi_home}/archive'}
-      - {key: nifi.flow.configuration.archive.max.time, value: '${nifi_flow_configuration_archive_max_time}
-          hours'}
-      - {key: nifi.flow.configuration.archive.max.storage, value: '${nifi_flow_configuration_archive_max_storage}
-          MB'}
-      - {key: nifi.flowcontroller.graceful.shutdown.period, value: '${nifi_flowcontroller_graceful_shutdown_period}
-          sec'}
-      - {key: nifi.flowservice.writedelay.interval, value: '${nifi_flowservice_writedelay_interval}
-          ms'}
-      - {key: nifi.administrative.yield.duration, value: '${nifi_administrative_yield_duration}
-          sec'}
-      - {key: nifi.bored.yield.duration, value: '${nifi_bored_yield_duration} millis'}
-      - {key: nifi.authorizer.configuration.file, value: authorizers.xml}
-      - {key: nifi.login.identity.provider.configuration.file, value: login-identity-providers.xml}
-      - {key: nifi.templates.directory, value: '${nifi_home}/templates'}
-      - {key: nifi.ui.autorefresh.interval, value: '${nifi_ui_autorefresh_interval}
-          sec'}
-      - {key: nifi.nar.library.directory, value: '@@CDH_NIFI_HOME@@/lib'}
-      - {key: nifi.nar.working.directory, value: '${nifi_work_dir}/nar'}
-      - {key: nifi.documentation.working.directory, value: '${nifi_work_dir}/docs/components'}
-      - {key: nifi.state.management.configuration.file, value: ./state-management.xml}
-      - {key: nifi.state.management.provider.local, value: local-provider}
-      - {key: nifi.state.management.provider.cluster, value: zk-provider}
-      - {key: nifi.state.management.embedded.zookeeper.start, value: 'false'}
-      - {key: nifi.flowfile.repository.checkpoint.interval, value: '${nifi_flowfile_repository_checkpoint_interval}
-          mins'}
-      - {key: nifi.swap.manager.implementation, value: org.apache.nifi.controller.FileSystemSwapManager}
-      - {key: nifi.swap.in.period, value: '${nifi_swap_in_period} sec'}
-      - {key: nifi.swap.out.period, value: '${nifi_swap_out_period} sec'}
-      - {key: nifi.content.claim.max.appendable.size, value: '${nifi_content_claim_max_appendable_size}
-          MB'}
-      - {key: nifi.content.repository.archive.max.retention.period, value: '${nifi_content_repository_archive_max_retention_period}
-          hours'}
-      - {key: nifi.content.repository.archive.max.usage.percentage, value: '${nifi_content_repository_archive_max_usage_percentage}%'}
-      - {key: nifi.components.status.repository.implementation, value: org.apache.nifi.controller.status.history.VolatileComponentStatusRepository}
-      - {key: nifi.components.status.snapshot.frequency, value: '${nifi_components_status_snapshot_frequency}
-          min'}
-      - {key: nifi.provenance.repository.max.storage.time, value: '${nifi_provenance_repository_max_storage_time}
-          hours'}
-      - {key: nifi.provenance.repository.max.storage.size, value: '${nifi_provenance_repository_max_storage_size}
-          GB'}
-      - {key: nifi.provenance.repository.rollover.time, value: '${nifi_provenance_repository_rollover_time}
-          secs'}
-      - {key: nifi.provenance.repository.rollover.size, value: '${nifi_provenance_repository_rollover_size}
-          MB'}
-      - {key: nifi.provenance.repository.index.shard.size, value: '${nifi_provenance_repository_index_shard_size}
-          MB'}
-      - {key: nifi.provenance.repository.warm.cache.frequency, value: '${nifi_provenance_repository_warm_cache_frequency}
-          hours'}
-      - {key: nifi_remote_input_secure, value: '${ssl_enabled}'}
-      - {key: nifi.remote.input.http.transaction.ttl, value: '${nifi_remote_input_http_transaction_ttl}
-          sec'}
-      - {key: nifi.web.war.directory, value: '@@CDH_NIFI_HOME@@/lib'}
-      - {key: nifi.web.jetty.working.directory, value: '${nifi_work_dir}/jetty'}
-      - {key: nifi.sensitive.props.algorithm, value: PBEWITHMD5AND256BITAES-CBC-OPENSSL}
-      - {key: nifi.sensitive.props.provider, value: BC}
-      - {key: nifi.security.keystoreType, value: JKS}
-      - {key: nifi.security.truststoreType, value: JKS}
-      configFormat: properties
-      filename: nifi.properties
-      includedParams: [nifi_flow_configuration_archive_enabled, nifi_flow_configuration_archive_max_count,
-        nifi_flowcontroller_auto_resume_state, nifi_ui_banner_text, nifi_database_directory,
-        nifi_database_h2_url, nifi_flowfile_repository_implementation, nifi_flowfile_repository_directory,
-        nifi_flowfile_repository_partitions, nifi_flowfile_repository_always_sync,
-        nifi_swap_queue_threshold, nifi_swap_in_threads, nifi_swap_out_threads, nifi_content_repository_implementation,
-        nifi_content_claim_max_flow_files, nifi_content_repository_directory_default,
-        nifi_content_repository_archive_enabled, nifi_content_repository_always_sync,
-        nifi_content_viewer_url, nifi_provenance_repository_implementation, nifi_provenance_repository_directory_default,
-        nifi_provenance_repository_query_threads, nifi_provenance_repository_index_threads,
-        nifi_provenance_repository_compress_on_rollover, nifi_provenance_repository_always_sync,
-        nifi_provenance_repository_journal_count, nifi_provenance_repository_indexed_fields,
-        nifi_provenance_repository_indexed_attributes, nifi_provenance_repository_max_attribute_length,
-        nifi_provenance_repository_concurrent_merge_threads, nifi_provenance_repository_buffer_size,
-        nifi_components_status_repository_buffer_size, nifi_remote_input_host, nifi_remote_input_socket_port,
-        nifi_remote_input_http_enabled, nifi_web_http_host, nifi_web_http_port, nifi_web_http_port_forwarding,
-        nifi_web_http_network_interface_default, nifi_web_https_host, nifi_web_https_port,
-        nifi_web_https_port_forwarding, nifi_web_https_network_interface_default,
-        nifi_web_jetty_threads, nifi_sensitive_props_key, ssl_server_keystore_location,
-        ssl_server_keystore_password, ssl_server_keystore_keypassword, ssl_client_truststore_location,
-        ssl_client_truststore_password, nifi_security_user_authorizer, nifi_security_user_login_identity_provider]
-    - additionalConfigs:
-      - {key: id, value: local-provider}
-      - {key: class, value: org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider}
-      - {key: Checkpoint Interval, value: '${state_management_local_provider_checkpoint_interval}
-          mins'}
-      - {key: Directory, value: '${state_management_local_provider_directory}'}
-      - {key: Always Sync, value: '${state_management_local_provider_always_sync}'}
-      - {key: Partitions, value: '${state_management_local_provider_partitions}'}
-      - {key: cdh.stateManagement.provider.type, value: local-provider}
-      configFormat: hadoop_xml
-      filename: state-management-local-provider.hadoop_xml
-      includedParams: []
-    - additionalConfigs:
-      - {key: id, value: zk-provider}
-      - {key: class, value: org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider}
-      - {key: Session Timeout, value: '${state_management_zk_provider_session_timeout}
-          seconds'}
-      - {key: Root Node, value: '${state_management_zk_provider_root_node}'}
-      - {key: Access Control, value: '${state_management_zk_provider_access_control}'}
-      - {key: cdh.stateManagement.provider.type, value: cluster-provider}
-      configFormat: hadoop_xml
-      filename: state-management-zk-provider.hadoop_xml
-      includedParams: []
-    peerConfigGenerators: []
-  externalLink: {label: NiFi UI, name: webserver_web_ui, secureUrl: 'https://${host}:${nifi_web_https_port}/nifi',
-    url: 'http://${host}:${nifi_web_http_port}/nifi'}
-  jvmBased: 'true'
+- name: NIFI_SERVER
   label: Node
+  pluralLabel: Nodes
+  jvmBased: 'true'
+
+  externalLink:
+    name: webserver_web_ui
+    label: NiFi UI
+    url: 'http://${host}:${nifi_web_http_port}/nifi'
+    secureUrl: 'https://${host}:${nifi_web_https_port}/nifi'
+
+  startRunner:
+    program: scripts/control.sh
+    args: [nifi-run]
+    environmentVariables:
+      JAVA_HOME: '${java_home}'
+      NIFI_HOME: '${nifi_home}'
+      NIFI_LOG_DIR: /var/log/nifi
+      NIFI_PID_DIR: '${nifi_home}'
+      NIFI_SSL_ENABLED: '${ssl_enabled}'
+
+  stopRunner:
+    program: scripts/control.sh
+    args: [nifi-stop]
+    environmentVariables:
+      JAVA_HOME: '${java_home}'
+      NIFI_HOME: '${nifi_home}'
+      NIFI_LOG_DIR: /var/log/nifi
+      NIFI_PID_DIR: '${nifi_home}'
+      NIFI_SSL_ENABLED: '${ssl_enabled}'
+
+  topology:
+    minInstances: 0
+    softMinInstances: 3
+
+  sslClient:
+    truststoreLocationConfigName: nifi.security.truststore
+    truststorePasswordConfigName: nifi.security.truststorePasswd
+  sslServer:
+    enabledConfigName: nifi.security.ssl.enabled
+    keyIdentifier: nifi_server
+    keyPasswordOptionality: optional
+    keystoreKeyPasswordConfigName: nifi.security.keyPasswd
+    keystoreLocationConfigName: nifi.security.keystore
+    keystorePasswordConfigName: nifi.security.keystorePasswd
+
   logging:
+    dir: /var/log/nifi
+    filename: nifi.log
+    loggingType: logback
+    modifiable: true
     additionalConfigs:
     - {key: '1', value: <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator"><resetJUL>true</resetJUL></contextListener>}
     - {key: '1', value: <logger name="org.apache.nifi" level="INFO"/>}
@@ -279,11 +164,7 @@ roles:
         additivity="false"/>}
     - {key: '1', value: <logger name="org.apache.nifi.StdOut" level="INFO" additivity="false"/>}
     - {key: '1', value: <logger name="org.apache.nifi.StdErr" level="ERROR" additivity="false"/>}
-    dir: /var/log/nifi
-    filename: nifi.log
-    loggingType: logback
-    modifiable: true
-  name: NIFI_SERVER
+
   parameters:
   - {configName: User Group Provider, default: file-user-group-provider, description: The
       identifier for an User Group Provider defined above that will be used to access
@@ -757,20 +638,181 @@ roles:
     required: true
     type: string_enum
     validValues: [Open, CreatorOnly]
-  pluralLabel: Nodes
-  sslClient: {truststoreLocationConfigName: nifi.security.truststore, truststorePasswordConfigName: nifi.security.truststorePasswd}
-  sslServer: {enabledConfigName: nifi.security.ssl.enabled, keyIdentifier: nifi_server,
-    keyPasswordOptionality: optional, keystoreKeyPasswordConfigName: nifi.security.keyPasswd,
-    keystoreLocationConfigName: nifi.security.keystore, keystorePasswordConfigName: nifi.security.keystorePasswd}
-  startRunner:
-    args: [nifi-run]
-    environmentVariables: {JAVA_HOME: '${java_home}', NIFI_HOME: '${nifi_home}', NIFI_LOG_DIR: /var/log/nifi,
-      NIFI_PID_DIR: '${nifi_home}', NIFI_SSL_ENABLED: '${ssl_enabled}'}
-    program: scripts/control.sh
-  stopRunner:
-    args: [nifi-stop]
-    environmentVariables: {JAVA_HOME: '${java_home}', NIFI_HOME: '${nifi_home}', NIFI_LOG_DIR: /var/log/nifi,
-      NIFI_PID_DIR: '${nifi_home}', NIFI_SSL_ENABLED: '${ssl_enabled}'}
-    program: scripts/control.sh
-  topology: {minInstances: '0', softMinInstances: '3'}
+
+  configWriter:
+    auxConfigGenerators:
+    - filename: authorizers-access-policy-provider-safety-valve.xml
+      sourceFilename: aux/authorizers-access-policy-provider-safety-valve.xml
+    - filename: authorizers-authorizer-safety-valve.xml
+      sourceFilename: aux/authorizers-authorizer-safety-valve.xml
+    - filename: authorizers-user-group-provider-safety-valve.xml
+      sourceFilename: aux/authorizers-user-group-provider-safety-valve.xml
+    - filename: bootstrap-notification-services.xml
+      sourceFilename: aux/bootstrap-notification-services.safety-valve-xml
+    - filename: login-identity-providers-safety-valve.xml
+      sourceFilename: aux/login-identity-providers-safety-valve.xml
+    - filename: state-management-safety-valve.xml
+      sourceFilename: aux/state-management-safety-valve.xml
+
+    generators:
+    - filename: authorizers-access-policy-provider-file.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams: []
+      additionalConfigs:
+      - {key: identifier, value: file-access-policy-provider}
+      - {key: class, value: org.apache.nifi.authorization.FileAccessPolicyProvider}
+      - {key: User Group Provider, value: '${authorizers_access_policy_file_user_group_provider}'}
+      - {key: Initial Admin Identity, value: '${authorizers_access_policy_file_initial_admin_identity}'}
+      - {key: Authorizations File, value: '${nifi_home}/authorizations.xml'}
+      - {key: cdh.authorizers.type, value: accessPolicyProvider}
+
+    - filename: authorizers-authorizer-managed.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams: []
+      additionalConfigs:
+      - {key: identifier, value: managed-authorizer}
+      - {key: class, value: org.apache.nifi.authorization.StandardManagedAuthorizer}
+      - {key: Access Policy Provider, value: '${authorizers_authorizer_managed_access_policy_provider}'}
+      - {key: cdh.authorizers.type, value: authorizer}
+
+    - filename: authorizers-user-group-provider-file.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams: []
+      additionalConfigs:
+      - {key: identifier, value: file-user-group-provider}
+      - {key: class, value: org.apache.nifi.authorization.FileUserGroupProvider}
+      - {key: Initial User Identity 1, value: '${authorizers_user_group_provider_file_initial_identity}'}
+      - {key: Users File, value: '${nifi_home}/users.xml'}
+      - {key: cdh.authorizers.type, value: userGroupProvider}
+
+    - filename: bootstrap.conf
+      configFormat: properties
+      includedParams: [bs_graceful_shutdown_seconds]
+      additionalConfigs:
+      - {key: java, value: '${java_home}/bin/java'}
+      - {key: notification.services.file, value: bootstrap-notification-services.xml}
+      - {key: notification.max.attempts, value: '5'}
+      - {key: run.as, value: ''}
+      - {key: nifi.bootstrap.sensitive.key, value: ''}
+
+    - filename: login-identity-providers-kerberos.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams: []
+      additionalConfigs:
+      - {key: identifier, value: kerberos-provider}
+      - {key: class, value: org.apache.nifi.kerberos.KerberosProvider}
+      - {key: Authentication Expiration, value: '${login_identity_providers_kerberos_authentication_expiration}
+          hours'}
+      - {key: Default Realm, value: '${login_identity_providers_kerberos_default_realm}'}
+      - {key: cdh.login.identity.providers.type, value: provider}
+
+    - filename: nifi.properties
+      configFormat: properties
+      includedParams: [nifi_flow_configuration_archive_enabled, nifi_flow_configuration_archive_max_count,
+        nifi_flowcontroller_auto_resume_state, nifi_ui_banner_text, nifi_database_directory,
+        nifi_database_h2_url, nifi_flowfile_repository_implementation, nifi_flowfile_repository_directory,
+        nifi_flowfile_repository_partitions, nifi_flowfile_repository_always_sync,
+        nifi_swap_queue_threshold, nifi_swap_in_threads, nifi_swap_out_threads, nifi_content_repository_implementation,
+        nifi_content_claim_max_flow_files, nifi_content_repository_directory_default,
+        nifi_content_repository_archive_enabled, nifi_content_repository_always_sync,
+        nifi_content_viewer_url, nifi_provenance_repository_implementation, nifi_provenance_repository_directory_default,
+        nifi_provenance_repository_query_threads, nifi_provenance_repository_index_threads,
+        nifi_provenance_repository_compress_on_rollover, nifi_provenance_repository_always_sync,
+        nifi_provenance_repository_journal_count, nifi_provenance_repository_indexed_fields,
+        nifi_provenance_repository_indexed_attributes, nifi_provenance_repository_max_attribute_length,
+        nifi_provenance_repository_concurrent_merge_threads, nifi_provenance_repository_buffer_size,
+        nifi_components_status_repository_buffer_size, nifi_remote_input_host, nifi_remote_input_socket_port,
+        nifi_remote_input_http_enabled, nifi_web_http_host, nifi_web_http_port, nifi_web_http_port_forwarding,
+        nifi_web_http_network_interface_default, nifi_web_https_host, nifi_web_https_port,
+        nifi_web_https_port_forwarding, nifi_web_https_network_interface_default,
+        nifi_web_jetty_threads, nifi_sensitive_props_key, ssl_server_keystore_location,
+        ssl_server_keystore_password, ssl_server_keystore_keypassword, ssl_client_truststore_location,
+        ssl_client_truststore_password, nifi_security_user_authorizer, nifi_security_user_login_identity_provider]
+      additionalConfigs:
+      - {key: nifi.flow.configuration.file, value: '${nifi_home}/flow.xml.gz'}
+      - {key: nifi.flow.configuration.archive.dir, value: '${nifi_home}/archive'}
+      - {key: nifi.flow.configuration.archive.max.time, value: '${nifi_flow_configuration_archive_max_time}
+          hours'}
+      - {key: nifi.flow.configuration.archive.max.storage, value: '${nifi_flow_configuration_archive_max_storage}
+          MB'}
+      - {key: nifi.flowcontroller.graceful.shutdown.period, value: '${nifi_flowcontroller_graceful_shutdown_period}
+          sec'}
+      - {key: nifi.flowservice.writedelay.interval, value: '${nifi_flowservice_writedelay_interval}
+          ms'}
+      - {key: nifi.administrative.yield.duration, value: '${nifi_administrative_yield_duration}
+          sec'}
+      - {key: nifi.bored.yield.duration, value: '${nifi_bored_yield_duration} millis'}
+      - {key: nifi.authorizer.configuration.file, value: authorizers.xml}
+      - {key: nifi.login.identity.provider.configuration.file, value: login-identity-providers.xml}
+      - {key: nifi.templates.directory, value: '${nifi_home}/templates'}
+      - {key: nifi.ui.autorefresh.interval, value: '${nifi_ui_autorefresh_interval}
+          sec'}
+      - {key: nifi.nar.library.directory, value: '@@CDH_NIFI_HOME@@/lib'}
+      - {key: nifi.nar.working.directory, value: '${nifi_work_dir}/nar'}
+      - {key: nifi.documentation.working.directory, value: '${nifi_work_dir}/docs/components'}
+      - {key: nifi.state.management.configuration.file, value: ./state-management.xml}
+      - {key: nifi.state.management.provider.local, value: local-provider}
+      - {key: nifi.state.management.provider.cluster, value: zk-provider}
+      - {key: nifi.state.management.embedded.zookeeper.start, value: 'false'}
+      - {key: nifi.flowfile.repository.checkpoint.interval, value: '${nifi_flowfile_repository_checkpoint_interval}
+          mins'}
+      - {key: nifi.swap.manager.implementation, value: org.apache.nifi.controller.FileSystemSwapManager}
+      - {key: nifi.swap.in.period, value: '${nifi_swap_in_period} sec'}
+      - {key: nifi.swap.out.period, value: '${nifi_swap_out_period} sec'}
+      - {key: nifi.content.claim.max.appendable.size, value: '${nifi_content_claim_max_appendable_size}
+          MB'}
+      - {key: nifi.content.repository.archive.max.retention.period, value: '${nifi_content_repository_archive_max_retention_period}
+          hours'}
+      - {key: nifi.content.repository.archive.max.usage.percentage, value: '${nifi_content_repository_archive_max_usage_percentage}%'}
+      - {key: nifi.components.status.repository.implementation, value: org.apache.nifi.controller.status.history.VolatileComponentStatusRepository}
+      - {key: nifi.components.status.snapshot.frequency, value: '${nifi_components_status_snapshot_frequency}
+          min'}
+      - {key: nifi.provenance.repository.max.storage.time, value: '${nifi_provenance_repository_max_storage_time}
+          hours'}
+      - {key: nifi.provenance.repository.max.storage.size, value: '${nifi_provenance_repository_max_storage_size}
+          GB'}
+      - {key: nifi.provenance.repository.rollover.time, value: '${nifi_provenance_repository_rollover_time}
+          secs'}
+      - {key: nifi.provenance.repository.rollover.size, value: '${nifi_provenance_repository_rollover_size}
+          MB'}
+      - {key: nifi.provenance.repository.index.shard.size, value: '${nifi_provenance_repository_index_shard_size}
+          MB'}
+      - {key: nifi.provenance.repository.warm.cache.frequency, value: '${nifi_provenance_repository_warm_cache_frequency}
+          hours'}
+      - {key: nifi_remote_input_secure, value: '${ssl_enabled}'}
+      - {key: nifi.remote.input.http.transaction.ttl, value: '${nifi_remote_input_http_transaction_ttl}
+          sec'}
+      - {key: nifi.web.war.directory, value: '@@CDH_NIFI_HOME@@/lib'}
+      - {key: nifi.web.jetty.working.directory, value: '${nifi_work_dir}/jetty'}
+      - {key: nifi.sensitive.props.algorithm, value: PBEWITHMD5AND256BITAES-CBC-OPENSSL}
+      - {key: nifi.sensitive.props.provider, value: BC}
+      - {key: nifi.security.keystoreType, value: JKS}
+      - {key: nifi.security.truststoreType, value: JKS}
+
+    - filename: state-management-local-provider.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams: []
+      additionalConfigs:
+      - {key: id, value: local-provider}
+      - {key: class, value: org.apache.nifi.controller.state.providers.local.WriteAheadLocalStateProvider}
+      - {key: Checkpoint Interval, value: '${state_management_local_provider_checkpoint_interval}
+          mins'}
+      - {key: Directory, value: '${state_management_local_provider_directory}'}
+      - {key: Always Sync, value: '${state_management_local_provider_always_sync}'}
+      - {key: Partitions, value: '${state_management_local_provider_partitions}'}
+      - {key: cdh.stateManagement.provider.type, value: local-provider}
+
+    - filename: state-management-zk-provider.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams: []
+      additionalConfigs:
+      - {key: id, value: zk-provider}
+      - {key: class, value: org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider}
+      - {key: Session Timeout, value: '${state_management_zk_provider_session_timeout}
+          seconds'}
+      - {key: Root Node, value: '${state_management_zk_provider_root_node}'}
+      - {key: Access Control, value: '${state_management_zk_provider_access_control}'}
+      - {key: cdh.stateManagement.provider.type, value: cluster-provider}
+
+    peerConfigGenerators: []
 
