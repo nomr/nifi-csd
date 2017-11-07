@@ -290,11 +290,19 @@ create_state_management_xml() {
              --param with "'${in_b}'" \
              ${merge} ${in_a}
     rm -f ${in_a} ${in_b}
+
+    sed -i \
+        -e "s|@@ZK_QUORUM@@|${ZK_QUORUM}|g" \
+        $out
 }
 
 update_nifi_properties() {
+    local num_of_nodes=$(cut -d ':' -f 1 nifi-nodes.properties | sort | uniq | wc -l)
+
     sed -i \
         -e "s|@@CDH_NIFI_HOME@@|${CDH_NIFI_HOME}|g" \
+        -e "s|@@ZK_QUORUM@@|${ZK_QUORUM}|g" \
+        -e "s|@@NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES@@|${num_of_nodes}|g" \
         nifi.properties
 
     if [ $NIFI_SSL_ENABLED == "true" ]; then

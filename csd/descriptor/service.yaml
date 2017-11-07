@@ -52,6 +52,16 @@ parameters:
   mode: '0750'
   default: /var/lib/nifi
 
+- name: nifi_cluster_protocol_heartbeat_interval
+  configName: nifi.cluster.protocol.heartbeat.interval
+  label: Cluster Protocol Heartbeat Interval
+  description: The interval at which nodes should emit heartbeats to
+    the Cluster Coordinator. The default value is 5 sec.
+  type: long
+  unit: seconds
+  softMin: 1
+  default: 5
+
 roles:
 - name: NIFI_SERVER
   label: Node
@@ -560,17 +570,23 @@ roles:
       of the components' status history., label: Components Status Respository Snapshot
       Frequency, min: 1, name: nifi_components_status_snapshot_frequency, type: long,
     unit: minutes}
+
   - {configName: nifi.remote.input.host, description: 'The host name that will be
       given out to clients to connect to this NiFi instance for Site-to-Site communication.
       By default, it is the value from InetAddress.getLocalHost().getHostName(). On
       UNIX-like operating systems, this is typically the output from the hostname
       command.', label: Site-to-Site Hostname, name: nifi_remote_input_host, required: false,
     type: string}
-  - {configName: nifi.remote.input.socket.port, default: 8022, description: 'The remote
+  - name: nifi_remote_input_socket_port
+    configName: nifi.remote.input.socket.port
+    label: Site-to-Site Port Number
+    description: 'The remote
       input socket port for Site-to-Site communication. By default, it is blank, but
-      it must have a value in order to use RAW socket as transport protocol for Site-to-Site.',
-    label: Site-to-Site Port Number, min: 1024, name: nifi_remote_input_socket_port,
-    required: false, type: port}
+      it must have a value in order to use RAW socket as transport protocol for Site-to-Site.'
+    min: 1024
+    required: false
+    type: port
+    default: 8022
   - {configName: nifi.remote.input.http.enabled, default: true, description: Specifies
       whether HTTP(or HTTPS) Site-to-Site should be enabled on this host., label: Site-to-Site
       HTTP/S Enabled, name: nifi_remote_input_http_enabled, required: true, type: boolean}
@@ -639,6 +655,146 @@ roles:
     type: password
     default: KY2ncTD7dTJzzMsUSBamefaG
 
+  - name: nifi_cluster_node_address
+    configName: nifi.cluster.node.address
+    label: Cluster Node Address
+    description: 'The fully qualified address of the node.'
+    required: false
+    type: string
+    default:
+  - name: nifi_cluster_node_protocol_port
+    configName: nifi.cluster.node.protocol.port
+    label: Cluster Node Protocol Port
+    description: 'The node’s protocol port.'
+    required: false
+    type: port
+    min: 1024
+    default: 8021
+  - name: nifi_cluster_node_protocol_threads
+    configName: nifi.cluster.node.protocol.threads
+    label: Cluster Node Protocol Threads
+    description: 'The number of threads that should be used to communicate with other
+      nodes in the cluster. This property defaults to 10, but for large clusters, this
+      value may need to be larger.'
+    type: long
+    min: 1
+    softMin: 10
+    default: 10
+  - name: nifi_cluster_node_protocol_max_threads
+    configName: nifi.cluster.node.protocol.max.threads
+    label: Cluster Node Protocol Max Threads
+    description: 'The maximum number of threads that should be used to communicate
+      with other nodes in the cluster.'
+    type: long
+    min: 1
+    softMin: 50
+    default: 50
+  - name: nifi_cluster_node_event_history_size
+    configName: nifi.cluster.node.event.history.size
+    label: Cluster Node Event History Size
+    description: 'When the state of a node in the cluster is changed, an event is generated
+      and can be viewed in the Cluster page. This value indicates how many events to keep
+      in memory for each node.'
+    type: long
+    min: 1
+    softMin: 25
+    default: 25
+  - name: nifi_cluster_node_connection_timeout
+    configName: nifi.cluster.node.connection.timeout
+    label: Cluster Node Connection Timeout
+    description: 'When connecting to another node in the cluster, specifies how long this
+      node should wait before considering the connection a failure.'
+    required: true
+    type: long
+    unit: seconds
+    min: 1
+    softMin: 5
+    default: 5
+  - name: nifi_cluster_node_read_timeout
+    configName: nifi.cluster.node.read.timeout
+    label: Cluster Node Read Timeout
+    description: 'When communicating with another node in the cluster, specifies how long
+      this node should wait to receive information from the remote node before considering
+      the communication with the node a failure.'
+    required: true
+    type: long
+    unit: seconds
+    min: 1
+    softMin: 5
+    default: 5
+  - name: nifi_cluster_node_max_concurrent_requests
+    configName: nifi.cluster.node.max.concurrent.requests
+    label: Cluster Node Max Concurrent Requests
+    description: 'Maximum number of concurrent requests when communicating with other nodes'
+    required: true
+    type: long
+    min: 1
+    softMin: 100
+    default: 100
+  - name: nifi_cluster_flow_election_max_wait_time
+    configName: nifi.cluster.flow.election.max.wait.time
+    label: Cluster Flow Election Max Wait Time
+    description: 'Specifies the amount of time to wait before electing a Flow as the
+      "correct" Flow. If the number of Nodes that have voted is equal to the number specified
+      by the nifi.cluster.flow.election.max.candidates property, the cluster will not wait
+      this long. Note that the time starts as soon as the first vote is cast.'
+    required: true
+    type: long
+    unit: seconds
+    min: 1
+    default: 300
+
+  - name: nifi_zookeeper_connect_timeout
+    configName: nifi.zookeeper.connect.timeout
+    label: Zookeeper Connect Timeout
+    description: 'How long to wait when connecting to ZooKeeper before considering the connection
+      a failure.'
+    required: true
+    type: long
+    unit: seconds
+    min: 1
+    softMin: 3
+    default: 3
+  - name: nifi_zookeeper_session_timeout
+    configName: nifi.zookeeper.session.timeout
+    label: Zookeeper Session Timeout
+    description: 'How long to wait after losing a connection to ZooKeeper before the session
+      is expired.'
+    required: true
+    type: long
+    unit: seconds
+    min: 1
+    softMin: 3
+    default: 3
+  - name: nifi_zookeeper_root_node
+    configName: nifi.zookeeper.root.node
+    label: State Management Zookeeper Provider Root Node
+    description: 'The root ZNode that should be used in ZooKeeper. ZooKeeper provides a directory-like
+      structure for storing data. Each directory in this structure is referred to as a ZNode. This
+      denotes the root ZNode, or directory, that should be used for storing data.  This is important to
+      set correctly, as which cluster the NiFi instance attempts to join is determined by which
+      ZooKeeper instance it connects to and the ZooKeeper Root Node that is specified.'
+    required: true
+    type: path
+    pathType: serviceSpecific
+    conformRegex: /.*
+    default: /nifi
+  - name: state_management_zk_provider_access_control
+    label: State Management Zookeeper Provider Access Control
+    configName: Access Control
+    description: 'Specifies which Access Controls will be applied to the ZooKeeper
+      ZNodes that are created by this State Provider. This value must be set to one
+      of: - Open  : ZNodes will be open to any ZooKeeper client.  - CreatorOnly  :
+      ZNodes will be accessible only by the creator. The creator will have full access
+      to create children, read, write, delete, and administer the ZNodes.  This option
+      is available only if access to ZooKeeper is secured via Kerberos or if a Username
+      and Password are set.'
+    required: true
+    type: string_enum
+    validValues: [Open, CreatorOnly]
+    default: Open
+
+
   - {configName: Directory, configurableInWizard: true, conformRegex: /.*, default: /data/state/local,
     description: The directory to store components' state in., label: State Management
       Local Provider Directory, mode: '0750', name: state_management_local_provider_directory,
@@ -657,30 +813,6 @@ roles:
   - {default: 2, description: The amount of time between checkpoints., label: State
       Management Local Provider Checkpoint Interval, min: 1, name: state_management_local_provider_checkpoint_interval,
     required: true, type: long, unit: minutes}
-  - {configName: Root Node, conformRegex: /.*, default: /nifi, description: 'The root
-      node in ZooKeeper where state should be stored. The default is ''/nifi'', but
-      it is advisable to change this to a different value if not using if multiple
-      NiFi instances may all be using the same ZooKeeper Server.', label: State Management
-      Zookeeper Provider Root Node, name: state_management_zk_provider_root_node,
-    pathType: serviceSpecific, required: true, type: path}
-  - {default: 30, description: Specifies how long this instance of NiFi is allowed
-      to be disconnected from ZooKeeper before creating a new ZooKeeper Session.,
-    label: State Management Zookeeper Provider Session Timeout, min: 1, name: state_management_zk_provider_session_timeout,
-    required: true, softMin: 10, type: long, unit: seconds}
-  - configName: Access Control
-    default: Open
-    description: 'Specifies which Access Controls will be applied to the ZooKeeper
-      ZNodes that are created by this State Provider. This value must be set to one
-      of: - Open  : ZNodes will be open to any ZooKeeper client.  - CreatorOnly  :
-      ZNodes will be accessible only by the creator. The creator will have full access
-      to create children, read, write, delete, and administer the ZNodes.  This option
-      is available only if access to ZooKeeper is secured via Kerberos or if a Username
-      and Password are set.'
-    label: State Management Zookeeper Provider Access Control
-    name: state_management_zk_provider_access_control
-    required: true
-    type: string_enum
-    validValues: [Open, CreatorOnly]
 
   configWriter:
     auxConfigGenerators:
@@ -774,7 +906,14 @@ roles:
         ssl_server_keystore_location, ssl_server_keystore_password, ssl_server_keystore_keypassword,
         ssl_client_truststore_location, ssl_client_truststore_password,
 
-        nifi_security_user_authorizer, nifi_security_user_login_identity_provider]
+        nifi_security_user_authorizer, nifi_security_user_login_identity_provider,
+
+        nifi_cluster_node_address, nifi_cluster_node_protocol_port, nifi_cluster_node_protocol_threads,
+        nifi_cluster_node_protocol_max_threads, nifi_cluster_node_event_history_size,
+        nifi_cluster_node_max_concurrent_requests,
+
+        nifi_zookeeper_root_node
+        ]
       additionalConfigs:
       - {key: nifi.flow.configuration.file, value: '${nifi_home}/flow.xml.gz'}
       - {key: nifi.flow.configuration.archive.dir, value: '${nifi_home}/archive'}
@@ -835,6 +974,35 @@ roles:
       - {key: nifi.sensitive.props.provider, value: BC}
       - {key: nifi.security.keystoreType, value: JKS}
       - {key: nifi.security.truststoreType, value: JKS}
+      - {key: nifi.security.needClientAuth, value: '${ssl_enabled}'}
+
+      - key: nifi.cluster.protocol.heartbeat.interval
+        value: ${nifi_cluster_protocol_heartbeat_interval} sec
+      - key: nifi.cluster.protocol.is.secure
+        value: ${ssl_enabled}
+
+      - key: nifi.cluster.node.connection.timeout
+        value: '${nifi_cluster_node_connection_timeout} sec'
+      - key: nifi.cluster.node.read.timeout
+        value: '${nifi_cluster_node_read_timeout} sec'
+      - key: nifi.cluster.flow.election.max.wait.time
+        value: '${nifi_cluster_flow_election_max_wait_time} sec'
+      - key: nifi.cluster.flow.election.max.candidates
+        value: '@@NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES@@'
+
+      - key: nifi.zookeeper.connect.string
+        value: '@@ZK_QUORUM@@'
+      - key: nifi.zookeeper.connect.timeout
+        value: '${nifi_zookeeper_connect_timeout} secs'
+      - key: nifi.zookeeper.session.timeout
+        value: '${nifi_zookeeper_session_timeout} secs'
+      - key: nifi.zookeeper.auth.type
+        value: 'default'
+      - key: nifi.zookeeper.kerberos.removeHostFromPrincipal
+        value: true
+      - key: nifi.zookeeper.kerberos.removeRealmFromPrincipal
+        value: true
+
 
     - filename: state-management-local-provider.hadoop_xml
       configFormat: hadoop_xml
@@ -855,9 +1023,9 @@ roles:
       additionalConfigs:
       - {key: id, value: zk-provider}
       - {key: class, value: org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider}
-      - {key: Session Timeout, value: '${state_management_zk_provider_session_timeout}
-          seconds'}
-      - {key: Root Node, value: '${state_management_zk_provider_root_node}'}
+      - {key: Connect String, value: '@@ZK_QUORUM@@' }
+      - {key: Root Node, value: '${nifi_zookeeper_root_node}'}
+      - {key: Session Timeout, value: '${nifi_zookeeper_session_timeout} seconds'}
       - {key: Access Control, value: '${state_management_zk_provider_access_control}'}
       - {key: cdh.stateManagement.provider.type, value: cluster-provider}
 
@@ -871,5 +1039,7 @@ roles:
       - {key: trustStore, value: '${ssl_client_truststore_location}'}
       - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
 
-    peerConfigGenerators: []
-
+    peerConfigGenerators:
+    - roleName: NIFI_SERVER
+      filename: nifi-nodes.properties
+      params: [nifi_cluster_node_protocol_port]
