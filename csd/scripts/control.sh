@@ -136,7 +136,7 @@ tls_client_init() {
     xsltproc -o ${out} \
              --param with "'${in_b}'" \
              ${merge} ${in_a}
-    #rm -f ${in_a} ${in_b}
+    rm -f ${in_a} ${in_b}
 
 
     xsltproc aux/xml2json.xslt $out | jq '
@@ -210,7 +210,43 @@ create_login_identity_providers_xml() {
     rm -f ${in_a} ${in_b}
 }
 
+create_authorizers_access_policy_provider_node_identities_hadoop_xml() {
+    local out=authorizers-access-policy-provider-node-identities.hadoop_xml
+    local dnPrefix=$(cat tls-conf/tls.json | jq -r .dnPrefix)
+    local dnSuffix=$(cat tls-conf/tls.json | jq -r .dnSuffix)
+
+    echo '<?xml version="1.0" encoding="UTF-8"?>' > $out
+    echo '<configuration>' >> $out
+
+    arr=($(cut -d ':' -f 1 nifi-nodes.properties | sort | uniq ))
+    for ix in ${!arr[*]}; do
+      echo '  <property>' >> $out
+      echo "    <name>Node Identity ${ix}</name>" >> $out
+      echo "    <value>${dnPrefix}${arr[$ix]}${dnSuffix}</value>" >> $out
+      echo '  </property>' >> $out
+    done
+
+    echo '</configuration>' >> $out
+
+
+}
+
 create_authorizers_xml() {
+    create_authorizers_access_policy_provider_node_identities_hadoop_xml
+
+    # Merge node identities
+    merge=aux/merge.xslt
+    prefix=authorizers-access-policy-provider
+    in_a=${prefix}-file.hadoop_xml
+    in_b=${prefix}-node-identities.hadoop_xml
+    out=${prefix}.hadoop_xml
+    xsltproc -o ${out} \
+             --param with "'${in_b}'" \
+             --param dontmerge "'property'" \
+             ${merge} ${in_a}
+    rm -f ${in_a} ${in_b}
+
+
     prefix=authorizers
     convert_prefix_hadoop_xml ${prefix}
 
@@ -231,7 +267,7 @@ create_authorizers_xml() {
     # Merge with Access Policy Providers
     prefix=authorizers-access-policy-provider
     in_a=${out}
-    in_b=${prefix}-file.xml
+    in_b=${prefix}.xml
     out=${prefix}-1.xml
     xsltproc -o ${out} \
              --param with "'${in_b}'" \
