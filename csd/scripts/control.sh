@@ -105,38 +105,55 @@ close_prefix_safety_valve_xml() {
 
 convert_prefix_hadoop_xml() {
     local prefix=$1
+    local xslt=${2:-aux/${prefix}.xslt}
 
-    for h_xml in `find . -type f -name "${prefix}-*.hadoop_xml"`; do
-        xsltproc -o ${h_xml//hadoop_xml/xml} aux/${prefix}.xslt ${h_xml}
+    local basename=$(basename $prefix)
+    local dirname=$(dirname $prefix)
+
+    for h_xml in `find ${dirname} -type f -name "${basename}-*.hadoop_xml"`; do
+        xsltproc -o ${h_xml//hadoop_xml/xml} ${xslt} ${h_xml}
         rm -f ${h_xml}
     done
 }
 
-hadoop_xml_to_json()
-{
-    local file=$1
+tls_client_init() {
+    prefix=tls-conf/tls
 
-    xsltproc aux/hadoop2element-value.xslt ${file}.hadoop_xml > ${file}.xml
+    convert_prefix_hadoop_xml ${prefix} aux/hadoop2element-value.xslt
 
-    xsltproc aux/xml2json.xslt ${file}.xml | jq '
+    caHostname=`grep port ${prefix}-server.properties | head -1 | cut -f 1 -d ':'`
+    caPort=`grep port ${prefix}-server.properties | head -1 | cut -f 2 -d '='`
+
+    sed -i "s/@@HOSTNAME@@/$(hostname -f)/" ${prefix}-service.xml
+    sed -i "s/@@CA_HOSTNAME@@/${caHostname}/" ${prefix}-service.xml
+    sed -i "s/@@CA_PORT@@/${caPort}/" ${prefix}-service.xml
+
+    # Merge TLS configuration
+    merge=aux/merge.xslt
+    in_a=${prefix}-client.xml
+    in_b=$(basename ${prefix}-service.xml) # relative paths only
+    out=${prefix}.xml
+    xsltproc -o ${out} \
+             --param with "'${in_b}'" \
+             ${merge} ${in_a}
+    #rm -f ${in_a} ${in_b}
+
+
+    xsltproc aux/xml2json.xslt $out | jq '
       .configuration |
       .port=(.port| tonumber) |
       .days=(.days | tonumber) |
       .keySize=(.keySize | tonumber) |
-      .reorderDn=(.reorderDn == "true")' > ${file}.json
-}
+      .reorderDn=(.reorderDn == "true")' > ${prefix}.json
 
-tls_client_init() {
-    hadoop_xml_to_json tls-conf/client
-
-    CLASSPATH=".:${CDH_NIFI_TOOLKIT_HOME}/lib"
+    CLASSPATH=".:${CDH_NIFI_TOOLKIT_HOME}/lib/*"
 
     "${JAVA}" -cp "${CLASSPATH}" \
                 ${JAVA_OPTS:--Xms12m -Xmx24m} \
                 ${CSD_JAVA_OPTS} \
                 org.apache.nifi.toolkit.tls.TlsToolkitMain \
                 client -F \
-                --configJson tls-conf/client.json
+                --configJson ${prefix}.json
 
 }
 
@@ -148,7 +165,7 @@ nifi_init() {
     locate_java8_home $1
 
     # TLS Client Init
-    tls_client_init
+    [ $NIFI_SSL_ENABLED == "false" ] || tls_client_init
 
     # Simulate NIFI_HOME
     [ -d conf ] || mkdir conf
@@ -288,7 +305,6 @@ update_nifi_properties() {
 }
 
 init_bootstrap() {
-    #BOOTSTRAP_LIBS=`find "${CDH_NIFI_HOME}/lib/bootstrap" -maxdepth 1 -name '*.jar' | tr "\n" ":"`
     BOOTSTRAP_LIBS="${CDH_NIFI_HOME}/lib/bootstrap/*"
 
     BOOTSTRAP_CLASSPATH="${CONF_DIR}:${BOOTSTRAP_LIBS}"

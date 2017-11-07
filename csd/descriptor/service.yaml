@@ -814,5 +814,15 @@ roles:
       - {key: Access Control, value: '${state_management_zk_provider_access_control}'}
       - {key: cdh.stateManagement.provider.type, value: cluster-provider}
 
+    - filename: tls-conf/tls-client.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams: []
+      additionalConfigs:
+      - {key: keyStore, value: '${ssl_server_keystore_location}'}
+      - {key: keyStorePassword, value: '${ssl_server_keystore_password}'}
+      - {key: keyPassword, value: '${ssl_server_keystore_keypassword}'}
+      - {key: trustStore, value: '${ssl_client_truststore_location}'}
+      - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
+
     peerConfigGenerators: []
 
