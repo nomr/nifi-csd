@@ -51,16 +51,6 @@ parameters:
   pathType: localDataDir
   mode: '0750'
   default: /var/lib/nifi
-- name: nifi_work_dir
-  configName: nifi.work.dir
-  label: NiFi Work directory
-  description: NiFi's work directory
-  required: true
-  configurableInWizard: true
-  type: path
-  pathType: localDataDir
-  mode: '0750'
-  default: /var/run/nifi
 
 roles:
 - name: NIFI_SERVER
@@ -768,8 +758,8 @@ roles:
       - {key: nifi.ui.autorefresh.interval, value: '${nifi_ui_autorefresh_interval}
           sec'}
       - {key: nifi.nar.library.directory, value: '@@CDH_NIFI_HOME@@/lib'}
-      - {key: nifi.nar.working.directory, value: '${nifi_work_dir}/nar'}
-      - {key: nifi.documentation.working.directory, value: '${nifi_work_dir}/docs/components'}
+      - {key: nifi.nar.working.directory, value: '${nifi_home}/work/nar'}
+      - {key: nifi.documentation.working.directory, value: '${nifi_home}/work/docs/components'}
       - {key: nifi.state.management.configuration.file, value: ./state-management.xml}
       - {key: nifi.state.management.provider.local, value: local-provider}
       - {key: nifi.state.management.provider.cluster, value: zk-provider}
@@ -803,7 +793,7 @@ roles:
       - {key: nifi.remote.input.http.transaction.ttl, value: '${nifi_remote_input_http_transaction_ttl}
           sec'}
       - {key: nifi.web.war.directory, value: '@@CDH_NIFI_HOME@@/lib'}
-      - {key: nifi.web.jetty.working.directory, value: '${nifi_work_dir}/jetty'}
+      - {key: nifi.web.jetty.working.directory, value: '${nifi_home}/work/jetty'}
       - {key: nifi.sensitive.props.algorithm, value: PBEWITHMD5AND256BITAES-CBC-OPENSSL}
       - {key: nifi.sensitive.props.provider, value: BC}
       - {key: nifi.security.keystoreType, value: JKS}
