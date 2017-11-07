@@ -156,11 +156,17 @@ roles:
     - {key: '1', value: <logger name="org.apache.nifi.StdErr" level="ERROR" additivity="false"/>}
 
   parameters:
-  - {configName: User Group Provider, default: file-user-group-provider, description: The
+  - name: authorizers_access_policy_file_user_group_provider
+    label: Authorizers File Access Policy Provider User Group Provider
+    configName: User Group Provider
+    description: The
       identifier for an User Group Provider defined above that will be used to access
-      users and groups for use in the managed access policies., label: Authorizers
-      File Access Policy Provider User Group Provider, name: authorizers_access_policy_file_user_group_provider,
-    required: true, type: string}
+      users and groups for use in the managed access policies.
+    required: true
+    type: string_enum
+    validValues: [file-user-group-provider]
+    default: file-user-group-provider
+
   - {configName: Initial Admin Identity, description: 'The identity of an initial
       admin user that will be granted access to the UI and given the ability to create
       additional users, groups, and policies. The value of this property could be
@@ -183,10 +189,15 @@ roles:
       This identity must be found in the configured User Group Provider.', label: Authorizers
       File Access Policy Provider Node Identity 1, name: authorizers_access_policy_file_node_identity_1,
     type: string}
-  - {configName: Access Policy Provider, default: file-access-policy-provider, description: The
-      identifier for an Access Policy Provider., label: Authorizers Managed Authorizer
-      Access Policy Provider, name: authorizers_authorizer_managed_access_policy_provider,
-    required: true, type: string}
+  - name: authorizers_authorizer_managed_access_policy_provider
+    configName: Access Policy Provider
+    label: Authorizers Managed Authorizer Access Policy Provider
+    description: The identifier for an Access Policy Provider.
+    required: true
+    type: string_enum
+    validValues: [file-access-policy-provider]
+    default: file-access-policy-provider
+
   - {configName: Initial User Identity 1, description: 'The <bd>umapped</bd> identity
       of a users and systems to seed the Users File. Use the safety-valve to add additional
       ones (key: Initial Identity [unique id], value: )', label: Authorizers File
@@ -264,10 +275,16 @@ roles:
   - {configName: nifi.h2.url.append, default: ;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE,
     description: Options to append to H2's connect string, label: H2 URL Append Options,
     name: nifi_database_h2_url, required: true, type: string}
-  - {configName: nifi.security.user.authorizer, default: managed-authorizer, description: The
-      identififer of the desired authorizer in authorizers.xml (or safety valve).,
-    label: Security User Authorizer, name: nifi_security_user_authorizer, required: true,
-    type: string}
+
+  - name: nifi_security_user_authorizer
+    configName: nifi.security.user.authorizer
+    label: Security User Authorizer
+    description: The identififer of the desired authorizer in authorizers.xml (or safety valve).
+    required: true
+    type: string_enum
+    validValues: ['managed-authorizer']
+    default: managed-authorizer
+
   - configName: nifi.security.user.login.identity.provider
     description: The identififer of the desired Login Identity Provider in login-identity-provider.xml
       (or safety valve).
@@ -276,13 +293,21 @@ roles:
     required: false
     type: string_enum
     validValues: ['', kerberos-provider]
-  - {configName: nifi.flowfile.repository.implementation, default: org.apache.nifi.controller.repository.WriteAheadFlowFileRepository,
+    default: ''
+
+  - name: nifi_flowfile_repository_implementation
+    configName: nifi.flowfile.repository.implementation
+    label: FlowFile Repository Implementation
     description: 'The FlowFile Repository implementation. The default value is org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
       and should only be changed with caution. To store flowfiles in memory instead
       of on disk (at the risk of data loss in the event of power/machine failure),
-      set this property to org.apache.nifi.controller.repository.VolatileFlowFileRepository.',
-    label: FlowFile Repository Implementation, name: nifi_flowfile_repository_implementation,
-    required: true, type: string}
+      set this property to org.apache.nifi.controller.repository.VolatileFlowFileRepository.'
+    required: true
+    type: string_enum
+    validValues:
+    - org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
+    - org.apache.nifi.controller.repository.VolatileFlowFileRepository
+    default: org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
   - {configName: nifi.flowfile.repository.directory, conformRegex: /.*, default: /data/nifi/flowfile,
     description: The location of the FlowFile Repository., label: FlowFile Respository
       Directory, mode: '0750', name: nifi_flowfile_repository_directory, pathType: localDataDir,
@@ -313,13 +338,20 @@ roles:
   - {configName: nifi.swap.out.threads, default: 4, description: The number of threads
       to use for swapping out, label: Swap out threads, min: 1, name: nifi_swap_out_threads,
     type: long}
-  - {configName: nifi.content.repository.implementation, default: org.apache.nifi.controller.repository.FileSystemRepository,
+
+  - name: nifi_content_repository_implementation
+    configName: nifi.content.repository.implementation
+    label: Content Repository Implementation
     description: 'The Content Repository implementation. The default value should
       only be changed with caution. To store flowfile content in memory instead of
       on disk (at the risk of data loss in the event of power/machine failure), set
-      this property to org.apache.nifi.controller.repository.VolatileContentRepository.',
-    label: Content Repository Implementation, name: nifi_content_repository_implementation,
-    required: true, type: string}
+      this property to org.apache.nifi.controller.repository.VolatileContentRepository.'
+    required: true
+    type: string_enum
+    validValues:
+    - org.apache.nifi.controller.repository.FileSystemRepository
+    - org.apache.nifi.controller.repository.VolatileContentRepository
+    default: org.apache.nifi.controller.repository.FileSystemRepository
   - {default: 10, description: The maximum size for a content claim., label: Content
       Repository Maximum content claim size, min: 1, name: nifi_content_claim_max_appendable_size,
     required: true, type: long, units: megabytes}
@@ -366,10 +398,15 @@ roles:
   - {configName: nifi.content.viewer.url, default: /nifi-content-viewer/, description: The
       URL for a web-based content viewer if one is available., label: Content Repository
       Viewer URL, name: nifi_content_viewer_url, required: true, type: string}
-  - {configName: nifi.provenance.repository.implementation, default: org.apache.nifi.provenance.WriteAheadProvenanceRepository,
-    description: The Provenance Repository implementation., label: Provenance Repository
-      Implementation, name: nifi_provenance_repository_implementation, required: true,
-    type: string}
+
+  - name: nifi_provenance_repository_implementation
+    configName: nifi.provenance.repository.implementation
+    label: Provenance Repository Implementation
+    description: The Provenance Repository implementation.
+    required: true
+    type: string_enum
+    validValues: [org.apache.nifi.provenance.WriteAheadProvenanceRepository]
+    default: org.apache.nifi.provenance.WriteAheadProvenanceRepository
   - {configName: nifi.provenance.repository.directory.default, conformRegex: /.*,
     default: /data/nifi/provenance, description: 'The location of the Provenance Repository.
       NOTE: Multiple provenance repositories can be specified by using the nifi.provenance.repository.directory.
