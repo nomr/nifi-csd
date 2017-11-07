@@ -188,17 +188,6 @@ roles:
       This identity must be found in the configured User Group Provider.', label: Authorizers
       File Access Policy Provider Initial Admin Identity, name: authorizers_access_policy_file_initial_admin_identity,
     required: true, type: string}
-  - {configName: Node Identity 1, description: 'The identity of a NiFi cluster node.
-      When clustered, a property for each node should be defined, so that every node
-      knows about every other node. If not clustered these properties can be ignored.
-      The name of each property must be unique, for example for a three node cluster:
-      ''Node Identity A'', ''Node Identity B'', ''Node Identity C'' or ''Node Identity
-      1'', ''Node Identity 2'', ''Node Identity 3'' NOTE: Any identity mapping rules
-      specified in nifi.properties will also be applied to the node identities, so
-      the values should be the unmapped identities (i.e. full DN from a certificate).
-      This identity must be found in the configured User Group Provider.', label: Authorizers
-      File Access Policy Provider Node Identity 1, name: authorizers_access_policy_file_node_identity_1,
-    type: string}
   - name: authorizers_authorizer_managed_access_policy_provider
     configName: Access Policy Provider
     label: Authorizers Managed Authorizer Access Policy Provider
@@ -571,12 +560,6 @@ roles:
       Frequency, min: 1, name: nifi_components_status_snapshot_frequency, type: long,
     unit: minutes}
 
-  - {configName: nifi.remote.input.host, description: 'The host name that will be
-      given out to clients to connect to this NiFi instance for Site-to-Site communication.
-      By default, it is the value from InetAddress.getLocalHost().getHostName(). On
-      UNIX-like operating systems, this is typically the output from the hostname
-      command.', label: Site-to-Site Hostname, name: nifi_remote_input_host, required: false,
-    type: string}
   - name: nifi_remote_input_socket_port
     configName: nifi.remote.input.socket.port
     label: Site-to-Site Port Number
@@ -599,12 +582,6 @@ roles:
     label: Site-to-Site HTTP Transaction TTL, min: 1, name: nifi_remote_input_http_transaction_ttl,
     required: true, type: long, unit: seconds}
 
-  - name: nifi_web_http_host
-    configName: nifi.web.http.host
-    label: HTTP(or HTTPS) host
-    description: The HTTP(or HTTPS) host
-    required: false
-    type: string
   - name: nifi_web_http_port
     configName: nifi.web.http.port
     description: The HTTP(or HTTPS) port
@@ -655,13 +632,6 @@ roles:
     type: password
     default: KY2ncTD7dTJzzMsUSBamefaG
 
-  - name: nifi_cluster_node_address
-    configName: nifi.cluster.node.address
-    label: Cluster Node Address
-    description: 'The fully qualified address of the node.'
-    required: false
-    type: string
-    default:
   - name: nifi_cluster_node_protocol_port
     configName: nifi.cluster.node.protocol.port
     label: Cluster Node Protocol Port
@@ -795,7 +765,7 @@ roles:
     default: Open
 
 
-  - {configName: Directory, configurableInWizard: true, conformRegex: /.*, default: /data/state/local,
+  - {configName: Directory, configurableInWizard: true, conformRegex: /.*, default: /data/nifi/state/local,
     description: The directory to store components' state in., label: State Management
       Local Provider Directory, mode: '0750', name: state_management_local_provider_directory,
     pathType: localDataDir, required: true, type: path}
@@ -896,19 +866,21 @@ roles:
         nifi_provenance_repository_journal_count, nifi_provenance_repository_indexed_fields,
         nifi_provenance_repository_indexed_attributes, nifi_provenance_repository_max_attribute_length,
         nifi_provenance_repository_concurrent_merge_threads, nifi_provenance_repository_buffer_size,
-        nifi_components_status_repository_buffer_size, nifi_remote_input_host, nifi_remote_input_socket_port,
-        nifi_remote_input_http_enabled,
+        nifi_components_status_repository_buffer_size,
 
-        nifi_web_http_host, nifi_web_http_port, nifi_web_http_port_forwarding, nifi_web_http_network_interface_default,
+        nifi_remote_input_socket_port, nifi_remote_input_http_enabled,
 
-        nifi_web_jetty_threads, nifi_sensitive_props_key,
+        nifi_web_http_port, nifi_web_http_port_forwarding, nifi_web_http_network_interface_default,
+
+        nifi_web_jetty_threads,
+        nifi_sensitive_props_key,
 
         ssl_server_keystore_location, ssl_server_keystore_password, ssl_server_keystore_keypassword,
         ssl_client_truststore_location, ssl_client_truststore_password,
 
         nifi_security_user_authorizer, nifi_security_user_login_identity_provider,
 
-        nifi_cluster_node_address, nifi_cluster_node_protocol_port, nifi_cluster_node_protocol_threads,
+        nifi_cluster_node_protocol_port, nifi_cluster_node_protocol_threads,
         nifi_cluster_node_protocol_max_threads, nifi_cluster_node_event_history_size,
         nifi_cluster_node_max_concurrent_requests,
 
@@ -965,22 +937,36 @@ roles:
           MB'}
       - {key: nifi.provenance.repository.warm.cache.frequency, value: '${nifi_provenance_repository_warm_cache_frequency}
           hours'}
-      - {key: nifi_remote_input_secure, value: '${ssl_enabled}'}
-      - {key: nifi.remote.input.http.transaction.ttl, value: '${nifi_remote_input_http_transaction_ttl}
-          sec'}
-      - {key: nifi.web.war.directory, value: '@@CDH_NIFI_HOME@@/lib'}
-      - {key: nifi.web.jetty.working.directory, value: '${nifi_home}/work/jetty'}
+
+      - key: nifi.remote.input.host
+        value: ${host}
+      - key: nifi.remote.input.secure
+        value: ${ssl_enabled}
+      - key: nifi.remote.input.http.transaction.ttl
+        value: ${nifi_remote_input_http_transaction_ttl} sec
+
+      - key: nifi.web.http.host
+        value: ${host}
+      - key: nifi.web.war.directory
+        value: '@@CDH_NIFI_HOME@@/lib'
+      - key: nifi.web.jetty.working.directory
+        value: '${nifi_home}/work/jetty'
+
       - {key: nifi.sensitive.props.algorithm, value: PBEWITHMD5AND256BITAES-CBC-OPENSSL}
       - {key: nifi.sensitive.props.provider, value: BC}
       - {key: nifi.security.keystoreType, value: JKS}
       - {key: nifi.security.truststoreType, value: JKS}
       - {key: nifi.security.needClientAuth, value: '${ssl_enabled}'}
 
+      - key: nifi.cluster.node.address
+        value: ${host}
       - key: nifi.cluster.protocol.heartbeat.interval
         value: ${nifi_cluster_protocol_heartbeat_interval} sec
       - key: nifi.cluster.protocol.is.secure
         value: ${ssl_enabled}
 
+      - key: nifi.cluster.is.node
+        value: true
       - key: nifi.cluster.node.connection.timeout
         value: '${nifi_cluster_node_connection_timeout} sec'
       - key: nifi.cluster.node.read.timeout
