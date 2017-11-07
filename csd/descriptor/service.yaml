@@ -588,14 +588,20 @@ roles:
   - {configName: nifi.web.jetty.threads, default: 200, description: The number of
       Jetty threads., label: HTTP(S) Number of Threads, min: 1, name: nifi_web_jetty_threads,
     required: true, type: long}
-  - {configName: nifi.sensitive.props.key, description: 'This is the password used
+  - name: nifi_sensitive_props_key
+    configName: nifi.sensitive.props.key
+    label: Security Sensitive Prop Key
+    description: 'This is the password used
       to encrypt any sensitive property values that are configured in processors.
       By default, it is blank, but the system administrator should provide a value
       for it. It can be a string of any length, although the recommended minimum length
       is 10 characters. Be aware that once this password is set and one or more sensitive
-      processor properties have been configured, this password should not be changed.',
-    label: Security Sensitive Prop Key, name: nifi_sensitive_props_key, required: true,
-    sensitive: true, type: password}
+      processor properties have been configured, this password should not be changed.'
+    required: true
+    configurableInWizard: true
+    sensitive: true
+    type: password
+    default: KY2ncTD7dTJzzMsUSBamefaG
   - {configName: Directory, configurableInWizard: true, conformRegex: /.*, default: /data/state/local,
     description: The directory to store components' state in., label: State Management
       Local Provider Directory, mode: '0750', name: state_management_local_provider_directory,
