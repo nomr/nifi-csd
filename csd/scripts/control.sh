@@ -383,10 +383,7 @@ case "$1" in
     nifi-run|nifi-stop)
         nifi ${1//nifi-/} "${@:2}"
         ;;
-    tls-run|tls-deploy)
-        tls ${1//tls-/} "${@:2}"
-        ;;
     *)
-        echo "Usage nifi {stop|run|status|dump|env}"
+        echo "Usage control.sh {nifi-run|nifi-stop}"
         ;;
 esac
