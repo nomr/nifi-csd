@@ -299,7 +299,7 @@ update_nifi_properties() {
 
     if [ $NIFI_SSL_ENABLED == "true" ]; then
         sed -i \
-            -e 's/nifi.web.http\..*//' \
+            -e 's/nifi\.web\.http\./nifi.web.https./' \
             nifi.properties
     fi
 }

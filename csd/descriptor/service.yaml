@@ -72,7 +72,7 @@ roles:
     name: webserver_web_ui
     label: NiFi UI
     url: 'http://${host}:${nifi_web_http_port}/nifi'
-    secureUrl: 'https://${host}:${nifi_web_https_port}/nifi'
+    secureUrl: 'https://${host}:${nifi_web_http_port}/nifi'
 
   startRunner:
     program: scripts/control.sh
@@ -555,11 +555,25 @@ roles:
       \ sends or receives flow files but doesn\u2019t confirm that transaction.",
     label: Site-to-Site HTTP Transaction TTL, min: 1, name: nifi_remote_input_http_transaction_ttl,
     required: true, type: long, unit: seconds}
-  - {configName: nifi.web.http.host, description: The HTTP host., label: HTTP host,
-    name: nifi_web_http_host, required: false, type: string}
-  - {configName: nifi.web.http.port, default: 9091, description: The HTTP port, label: HTTP
-      port, min: 1024, name: nifi_web_http_port, required: false, type: port}
-  - {configName: nifi.web.http.port.forwarding, description: 'The port which forwards
+
+  - name: nifi_web_http_host
+    configName: nifi.web.http.host
+    label: HTTP(or HTTPS) host
+    description: The HTTP(or HTTPS) host
+    required: false
+    type: string
+  - name: nifi_web_http_port
+    configName: nifi.web.http.port
+    description: The HTTP(or HTTPS) port
+    label: HTTP(or HTTPS) port
+    required: false
+    type: port
+    min: 1024
+    default: 9090
+  - name: nifi_web_http_port_forwarding
+    configName: nifi.web.http.port.forwarding
+    label: HTTP(or HTTPS) Forwarded port
+    description: 'The port which forwards
       incoming HTTP requests to nifi.web.http.host. This property is designed to be
       used with port forwarding, when NiFi has to be started by a non-root user for
       better security, yet it needs to be accessed via low port to go through a firewall.
@@ -567,27 +581,22 @@ roles:
       on port 8080, you need to configure OS level port forwarding such as iptables
       (Linux/Unix) or pfctl (OS X) that redirects requests from 80 to 8080. Then set
       nifi.web.http.port as 8080, and nifi.web.http.port.forwarding as 80. It is blank
-      by default.', label: HTTP Forwarded Port, min: 1, name: nifi_web_http_port_forwarding,
-    required: false, type: port}
-  - {configName: nifi.web.http.network.interface.default, description: The name of
-      the network interface to which NiFi should bind for HTTP requests., label: HTTP
-      Default Network Interface, name: nifi_web_http_network_interface_default, required: false,
-    type: string}
-  - {configName: nifi.web.https.host, description: The HTTPS host, label: HTTPS Host,
-    name: nifi_web_https_host, required: false, type: string}
-  - {configName: nifi.web.https.port, default: 9090, description: The HTTPS port,
-    label: HTTPS Port, min: 1024, name: nifi_web_https_port, type: port}
-  - {configName: nifi.web.https.port.forwarding, description: 'Same as nifi.web.http.port.forwarding,
-      but with HTTPS for secure communication. It is blank by default.', label: HTTP
-      Forwarded Port, min: 1, name: nifi_web_https_port_forwarding, required: false,
-    type: port}
-  - {configName: nifi.web.https.network.interface.default, description: The name of
-      the network interface to which NiFi should bind for HTTPS requests., label: HTTPS
-      Default Network Interface, name: nifi_web_https_network_interface_default, required: false,
-    type: string}
+      by default.'
+    required: false
+    type: port
+    min: 1
+  - name: nifi_web_http_network_interface_default
+    configName: nifi.web.http.network.interface.default
+    description: 'The name of the network interface to which NiFi should bind for
+      HTTP requests.'
+    label: HTTP(or HTTPs) Default Network Interface
+    required: false
+    type: string
+
   - {configName: nifi.web.jetty.threads, default: 200, description: The number of
       Jetty threads., label: HTTP(S) Number of Threads, min: 1, name: nifi_web_jetty_threads,
     required: true, type: long}
+
   - name: nifi_sensitive_props_key
     configName: nifi.sensitive.props.key
     label: Security Sensitive Prop Key
@@ -602,6 +611,7 @@ roles:
     sensitive: true
     type: password
     default: KY2ncTD7dTJzzMsUSBamefaG
+
   - {configName: Directory, configurableInWizard: true, conformRegex: /.*, default: /data/state/local,
     description: The directory to store components' state in., label: State Management
       Local Provider Directory, mode: '0750', name: state_management_local_provider_directory,
@@ -728,12 +738,16 @@ roles:
         nifi_provenance_repository_indexed_attributes, nifi_provenance_repository_max_attribute_length,
         nifi_provenance_repository_concurrent_merge_threads, nifi_provenance_repository_buffer_size,
         nifi_components_status_repository_buffer_size, nifi_remote_input_host, nifi_remote_input_socket_port,
-        nifi_remote_input_http_enabled, nifi_web_http_host, nifi_web_http_port, nifi_web_http_port_forwarding,
-        nifi_web_http_network_interface_default, nifi_web_https_host, nifi_web_https_port,
-        nifi_web_https_port_forwarding, nifi_web_https_network_interface_default,
-        nifi_web_jetty_threads, nifi_sensitive_props_key, ssl_server_keystore_location,
-        ssl_server_keystore_password, ssl_server_keystore_keypassword, ssl_client_truststore_location,
-        ssl_client_truststore_password, nifi_security_user_authorizer, nifi_security_user_login_identity_provider]
+        nifi_remote_input_http_enabled,
+
+        nifi_web_http_host, nifi_web_http_port, nifi_web_http_port_forwarding, nifi_web_http_network_interface_default,
+
+        nifi_web_jetty_threads, nifi_sensitive_props_key,
+
+        ssl_server_keystore_location, ssl_server_keystore_password, ssl_server_keystore_keypassword,
+        ssl_client_truststore_location, ssl_client_truststore_password,
+
+        nifi_security_user_authorizer, nifi_security_user_login_identity_provider]
       additionalConfigs:
       - {key: nifi.flow.configuration.file, value: '${nifi_home}/flow.xml.gz'}
       - {key: nifi.flow.configuration.archive.dir, value: '${nifi_home}/archive'}
