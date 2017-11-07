@@ -105,19 +105,67 @@ close_prefix_safety_valve_xml() {
 
 convert_prefix_hadoop_xml() {
     local prefix=$1
+    local xslt=${2:-aux/${prefix}.xslt}
 
-    for h_xml in `find . -type f -name "${prefix}-*.hadoop_xml"`; do
-        xsltproc -o ${h_xml//hadoop_xml/xml} aux/${prefix}.xslt ${h_xml}
+    local basename=$(basename $prefix)
+    local dirname=$(dirname $prefix)
+
+    for h_xml in `find ${dirname} -type f -name "${basename}-*.hadoop_xml"`; do
+        xsltproc -o ${h_xml//hadoop_xml/xml} ${xslt} ${h_xml}
         rm -f ${h_xml}
     done
 }
 
-init() {
+tls_client_init() {
+    prefix=tls-conf/tls
+
+    convert_prefix_hadoop_xml ${prefix} aux/hadoop2element-value.xslt
+
+    caHostname=`grep port ${prefix}-server.properties | head -1 | cut -f 1 -d ':'`
+    caPort=`grep port ${prefix}-server.properties | head -1 | cut -f 2 -d '='`
+
+    sed -i "s/@@HOSTNAME@@/$(hostname -f)/" ${prefix}-service.xml
+    sed -i "s/@@CA_HOSTNAME@@/${caHostname}/" ${prefix}-service.xml
+    sed -i "s/@@CA_PORT@@/${caPort}/" ${prefix}-service.xml
+
+    # Merge TLS configuration
+    merge=aux/merge.xslt
+    in_a=${prefix}-client.xml
+    in_b=$(basename ${prefix}-service.xml) # relative paths only
+    out=${prefix}.xml
+    xsltproc -o ${out} \
+             --param with "'${in_b}'" \
+             ${merge} ${in_a}
+    #rm -f ${in_a} ${in_b}
+
+
+    xsltproc aux/xml2json.xslt $out | jq '
+      .configuration |
+      .port=(.port| tonumber) |
+      .days=(.days | tonumber) |
+      .keySize=(.keySize | tonumber) |
+      .reorderDn=(.reorderDn == "true")' > ${prefix}.json
+
+    CLASSPATH=".:${CDH_NIFI_TOOLKIT_HOME}/lib/*"
+
+    "${JAVA}" -cp "${CLASSPATH}" \
+                ${JAVA_OPTS:--Xms12m -Xmx24m} \
+                ${CSD_JAVA_OPTS} \
+                org.apache.nifi.toolkit.tls.TlsToolkitMain \
+                client -F \
+                --configJson ${prefix}.json
+
+}
+
+nifi_init() {
     # Unlimit the number of file descriptors if possible
     unlimitFD
 
     # NiFi 1.4.0 was compiled with 1.8.0
     locate_java8_home $1
+
+    # TLS Client Init
+    [ $NIFI_SSL_ENABLED == "false" ] || tls_client_init
 
     # Simulate NIFI_HOME
     [ -d conf ] || mkdir conf
@@ -248,10 +296,15 @@ update_nifi_properties() {
     sed -i \
         -e "s|@@CDH_NIFI_HOME@@|${CDH_NIFI_HOME}|g" \
         nifi.properties
+
+    if [ $NIFI_SSL_ENABLED == "true" ]; then
+        sed -i \
+            -e 's/nifi\.web\.http\./nifi.web.https./' \
+            nifi.properties
+    fi
 }
 
 init_bootstrap() {
-    #BOOTSTRAP_LIBS=`find "${CDH_NIFI_HOME}/lib/bootstrap" -maxdepth 1 -name '*.jar' | tr "\n" ":"`
     BOOTSTRAP_LIBS="${CDH_NIFI_HOME}/lib/bootstrap/*"
 
     BOOTSTRAP_CLASSPATH="${CONF_DIR}:${BOOTSTRAP_LIBS}"
@@ -303,7 +356,7 @@ update_logback_xml() {
     sed -i 's/<configuration>/<configuration scan="true" scanPeriod="30 seconds">/' logback.xml
 }
 
-run() {
+nifi_run() {
     run_nifi_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} org.apache.nifi.bootstrap.RunNiFi $@"
 
     if [ "$1" = "run" ]; then
@@ -321,17 +374,16 @@ run() {
     echo
 }
 
-main() {
-    init "$1"
-    run "$@"
+nifi() {
+    nifi_init "$1"
+    nifi_run "$@"
 }
 
-
 case "$1" in
-    stop|run|status|dump|env)
-        main "$@"
+    nifi-run|nifi-stop)
+        nifi ${1//nifi-/} "${@:2}"
         ;;
     *)
-        echo "Usage nifi {stop|run|status|dump|env}"
+        echo "Usage control.sh {nifi-run|nifi-stop}"
         ;;
 esac
