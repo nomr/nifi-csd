@@ -31,6 +31,8 @@ serviceDependencies:
 
 rolesWithExternalLinks: [NIFI_SERVER]
 
+kerberos: true
+
 parameters:
 - name: java_home
   configName: java.home
@@ -108,6 +110,14 @@ roles:
     keystoreKeyPasswordConfigName: nifi.security.keyPasswd
     keystoreLocationConfigName: nifi.security.keystore
     keystorePasswordConfigName: nifi.security.keystorePasswd
+
+  kerberosPrincipals:
+  - name: nifi_principal
+    primary: ${principal}
+    instance : ${host}
+  - name: nifi_spnego_principal
+    primary: HTTP
+    instance : ${host}
 
   logging:
     dir: /var/log/nifi
@@ -853,6 +863,13 @@ roles:
 
     - filename: nifi.properties
       configFormat: properties
+
+      kerberosPrincipals:
+      - principalName: nifi_principal
+        propertyName: nifi.kerberos.service.principal
+      - principalName: nifi_spnego_principal
+        propertyName: nifi.kerberos.spnego.principal
+
       includedParams: [nifi_flow_configuration_archive_enabled, nifi_flow_configuration_archive_max_count,
         nifi_flowcontroller_auto_resume_state, nifi_ui_banner_text, nifi_database_directory,
         nifi_database_h2_url, nifi_flowfile_repository_implementation, nifi_flowfile_repository_directory,
@@ -988,6 +1005,13 @@ roles:
         value: true
       - key: nifi.zookeeper.kerberos.removeRealmFromPrincipal
         value: true
+
+      - key: nifi.kerberos.service.keytab.location
+        value: nifi.keytab
+      - key: nifi.kerberos.spnego.keytab.location
+        value: nifi.keytab
+      - key: nifi.kerberos.spnego.authentication.expiration
+        value: '${login_identity_providers_kerberos_authentication_expiration}'
 
       - key: nifi.variable.registry.properties
         value: nifi-variable-registry.properties
