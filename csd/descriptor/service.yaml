@@ -989,6 +989,8 @@ roles:
       - key: nifi.zookeeper.kerberos.removeRealmFromPrincipal
         value: true
 
+      - key: nifi.variable.registry.properties
+        value: nifi-variable-registry.properties
 
     - filename: state-management-local-provider.hadoop_xml
       configFormat: hadoop_xml
@@ -1024,6 +1026,10 @@ roles:
       - {key: keyPassword, value: '${ssl_server_keystore_keypassword}'}
       - {key: trustStore, value: '${ssl_client_truststore_location}'}
       - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
+
+    - filename: nifi-variable-registry.properties
+      configFormat: properties
+      includedParams: []
 
     peerConfigGenerators:
     - roleName: NIFI_SERVER
