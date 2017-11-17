@@ -804,6 +804,8 @@ roles:
       sourceFilename: aux/authorizers-user-group-provider-safety-valve.xml
     - filename: bootstrap-notification-services.xml
       sourceFilename: aux/bootstrap-notification-services.safety-valve-xml
+    - filename: jaas.conf
+      sourceFilename: aux/jaas.conf
     - filename: login-identity-providers-safety-valve.xml
       sourceFilename: aux/login-identity-providers-safety-valve.xml
     - filename: state-management-safety-valve.xml

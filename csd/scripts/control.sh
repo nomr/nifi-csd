@@ -176,6 +176,9 @@ nifi_init() {
     update_bootstrap_conf
     close_xml_file "services" bootstrap-notification-services.xml
 
+    # Update jaas.conf
+    update_jaas_conf
+
 
     [ -e 'login-identity-providers.xml' ] || create_login_identity_providers_xml
     [ -e 'state-management.xml' ] || create_state_management_xml
@@ -406,6 +409,9 @@ update_bootstrap_conf() {
     insert_if_not_exists "java.arg.5=-Dsun.net.http.allowRestrictedHeaders=true" ${BOOTSTRAP_CONF}
     insert_if_not_exists "java.arg.6=-Djava.protocol.handler.pkgs=sun.net.www.protocol" ${BOOTSTRAP_CONF}
 
+    # Use the JAAS file
+    insert_if_not_exists "java.arg.7=-Djava.security.auth.login.config=./jaas.conf" ${BOOTSTRAP_CONF}
+
     # The G1GC is still considered experimental but has proven to be very advantageous in providing great
     # performance without significant "stop-the-world" delays.
     insert_if_not_exists "java.arg.13=-XX:+UseG1GC" ${BOOTSTRAP_CONF}
@@ -419,6 +425,12 @@ update_bootstrap_conf() {
 
 update_logback_xml() {
     sed -i 's/<configuration>/<configuration scan="true" scanPeriod="30 seconds">/' logback.xml
+}
+
+update_jaas_conf() {
+    local nifi_principal=$(grep 'nifi.kerberos.service.principal=' nifi.properties | tail -1 | cut -d '=' -f 2)
+
+    sed -i -e 's|@@NIFI_PRINCIPAL@@|${nifi_principal}|' jaas.conf
 }
 
 nifi_run() {
