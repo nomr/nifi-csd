@@ -26,8 +26,6 @@ parcel:
 serviceDependencies:
 - name: ZOOKEEPER
   required: 'true'
-- name: TLS
-  required: 'true'
 
 rolesWithExternalLinks: [NIFI_SERVER]
 
@@ -64,7 +62,97 @@ parameters:
   softMin: 1
   default: 5
 
+- name: tls_token
+  configName: token
+  label: TLS Server Client-Server Token
+  description: The token to prevent MITM attacks.
+  required: true
+  configurableInWizard: true
+  sensitive: true
+  type: password
+  default: jeuKGCg9Wef6QKKxVy62
+- name: tls_dn_prefix
+  configName: dnPrefix
+  label: The DN prefix for the certificate
+  description: The DN prefix to use for the CA certificate.
+  required: true
+  type: string
+  default: CN=
+- name: tls_dn_suffix
+  configName: dnSuffix
+  label: The DN suffix for the certificate
+  description: The DN suffx to use for the CA certificate.
+  required: true
+  type: string
+  default: ', OU=HADOOP'
+- name: tls_home
+  label: TLS Server Data Directory
+  description: The path to the TLS Server Directory
+  required: true
+  configurableInWizard: true
+  type: path
+  pathType: localDataDir
+  conformRegex: /.*
+  default: /data/tls
+  mode: '0700'
+
 roles:
+- name: NIFI_CA_SERVER
+  label: CA Server
+  pluralLabel: CA Servers
+  jvmBased: 'true'
+  logging:
+    dir: /var/log/nifi
+    filename: nifi-ca-server.log
+    loggingType: log4j
+    modifiable: false
+  startRunner:
+    args: [ca-server-run]
+    environmentVariables: {JAVA_HOME: '${java_home}'}
+    program: scripts/control.sh
+  topology:
+    maxInstances: '1'
+    minInstances: '1'
+  parameters:
+  - name: tls_port
+    configName: port
+    label: TLS Server Port
+    description: The port for the Certificate Authority to listen on.
+    required: true
+    type: port
+    min: 1024
+    default: 22443
+  - name: tls_keystore_password
+    configName: keyStorePassword
+    label: TLS Server KeyStore File Password
+    description: The TLS Server keystore password
+    required: true
+    configurableInWizard: true
+    sensitive: true
+    type: password
+    default: F0UjXLEgeQiNa3JP5E2h
+  configWriter:
+    generators:
+    - filename: server.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams:
+      - tls_dn_prefix
+      - tls_dn_suffix
+      - tls_port
+      - tls_token
+      - tls_keystore_password
+      additionalConfigs:
+      - {key: days, value: '1095'}
+      - {key: keySize, value: '2048'}
+      - {key: keyPairAlgorithm, value: RSA}
+      - {key: signingAlgorithm, value: SHA256WITHRSA}
+      - {key: dn, value: '${tls_dn_prefix}${host}${tls_dn_suffix}'}
+      - {key: keyStore, value: '${tls_home}/server.jks'}
+      - {key: keyStoreType, value: jks}
+      - {key: keyPassword, value: '${tls_keystore_password}'}
+      - {key: caHostname, value: '${host}'}
+      - {key: reorderDn, value: true}
+
 - name: NIFI_SERVER
   label: Node
   pluralLabel: Nodes
@@ -1053,6 +1141,23 @@ roles:
       - {key: trustStore, value: '${ssl_client_truststore_location}'}
       - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
 
+    - filename: tls-conf/tls-service.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams:
+      - tls_dn_prefix
+      - tls_dn_suffix
+      - tls_token
+      additionalConfigs:
+      - {key: days, value: '1095'}
+      - {key: keySize, value: '2048'}
+      - {key: keyPairAlgorithm, value: RSA}
+      - {key: signingAlgorithm, value: SHA256WITHRSA}
+      - {key: dn, value: '${tls_dn_prefix}@@HOSTNAME@@${tls_dn_suffix}'}
+      - {key: keyStoreType, value: jks}
+      - {key: caHostname, value: '@@CA_HOSTNAME@@'}
+      - {key: port, value: '@@CA_PORT@@'}
+      - {key: reorderDn, value: true}
+
     - filename: nifi-variable-registry.properties
       configFormat: properties
       includedParams: []
@@ -1061,3 +1166,6 @@ roles:
     - roleName: NIFI_SERVER
       filename: nifi-nodes.properties
       params: [nifi_cluster_node_protocol_port]
+    - roleName: NIFI_CA_SERVER
+      filename: tls-conf/tls-server.properties
+      params: [tls_port]
