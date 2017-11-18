@@ -1013,7 +1013,7 @@ roles:
       - key: nifi.kerberos.spnego.keytab.location
         value: nifi.keytab
       - key: nifi.kerberos.spnego.authentication.expiration
-        value: '${login_identity_providers_kerberos_authentication_expiration}'
+        value: '${login_identity_providers_kerberos_authentication_expiration} hours'
 
       - key: nifi.variable.registry.properties
         value: nifi-variable-registry.properties
