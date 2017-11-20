@@ -37,8 +37,11 @@ install: $(PKG_NAME)-0.1.0.jar .cookie
 	chown cloudera-scm:cloudera-scm /opt/cloudera/csd/$<
 	curl -b .cookie -s http://localhost:7180/cmf/csd/refresh | jq
 	curl -b .cookie -s -X POST http://localhost:7180/api/v17/clusters/zeus/services/$(CDH_SERVICE)/commands/stop | jq || true
+	sleep 5
 	curl -b .cookie -s 'http://localhost:7180/cmf/csd/uninstall?csdName=$(PKG_NAME)-0.1.0&force=true' | jq || true
+	sleep 5
 	curl -b .cookie -s http://localhost:7180/cmf/csd/install?csdName=$(PKG_NAME)-0.1.0 | jq
+	sleep 5
 	curl -b .cookie -s -X POST http://localhost:7180/api/v17/clusters/zeus/services/$(CDH_SERVICE)/commands/start | jq || true
 
 uninstall:
