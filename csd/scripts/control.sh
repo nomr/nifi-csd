@@ -73,6 +73,12 @@ locate_java8_home() {
     fi
 }
 
+get_property() {
+    local file=$1
+    local key=$2
+    grep "$key=" ${file}.properties | tail -1 | cut -d '=' -f 2
+}
+
 #TODO: replace with sed
 insert_if_not_exists() {
     LINE=$1
@@ -411,33 +417,15 @@ update_jaas_conf() {
     NIFI_JAVA_OPTS="${NIFI_JAVA_OPTS} -Djava.security.auth.login.config=${CONF_DIR}/conf/jaas.conf"
 }
 
-nifi_run() {
-    run_nifi_cmd="'${JAVA}' -cp '${BOOTSTRAP_CLASSPATH}' -Xms12m -Xmx24m ${BOOTSTRAP_DIR_PARAMS} org.apache.nifi.bootstrap.RunNiFi $@"
-
-    if [ "$1" = "run" ]; then
-      # Use exec to handover PID to RunNiFi java process, instead of foking it as a child process
-      run_nifi_cmd="exec ${run_nifi_cmd}"
-    fi
-
-    eval "cd ${CONF_DIR} && ${run_nifi_cmd}"
-    EXIT_STATUS=$?
-
-    # Wait just a bit (3 secs) to wait for the logging to finish and then echo a new-line.
-    # We do this to avoid having logs spewed on the console after running the command and then not giving
-    # control back to the user
-    sleep 3
-    echo
-}
-
 nifi_start() {
     NIFI_JAVA_OPTS="${CSD_JAVA_OPTS} ${NIFI_JAVA_OPTS}"
     run_nifi_cmd="'${JAVA}' -cp '${CONF_DIR}:${CDH_NIFI_HOME}/lib/*' ${NIFI_JAVA_OPTS} org.apache.nifi.NiFi"
     eval "cd ${CONF_DIR} && exec ${run_nifi_cmd}"
 }
 
-nifi() {
-    nifi_init "$1"
-    nifi_run "$@"
+nifi_reset() {
+    cmd=$(get_property nifi-reset $1)
+    exec $cmd
 }
 
 case "$1" in
@@ -445,8 +433,9 @@ case "$1" in
         nifi_init "${1//nifi-}"
         nifi_start
         ;;
-    nifi-run|nifi-stop)
-        nifi ${1//nifi-/} "${@:2}"
+    nifi-reset)
+        nifi_init "${1//nifi-}"
+        nifi_reset "${@:2}"
         ;;
     *)
         echo "Usage control.sh {nifi-run|nifi-stop}"
