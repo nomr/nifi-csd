@@ -20,13 +20,13 @@ runAs:
 maxInstances: 1
 
 parcel:
-  repoUrl: https://github.com/nomr/nifi-parcel/releases/download/v1.4.0+nifi0.3.0
+  repoUrl: https://github.com/nomr/nifi-parcel/releases/download/v1.4.0+nifi0.4.0
   requiredTags: [nifi]
 
 serviceDependencies:
 - name: ZOOKEEPER
   required: 'true'
-- name: TLS
+- name: NIFI_TLS
   required: 'true'
 
 rolesWithExternalLinks: [NIFI_SERVER]

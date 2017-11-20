@@ -121,8 +121,8 @@ tls_client_init() {
 
     convert_prefix_hadoop_xml ${prefix} aux/hadoop2element-value.xslt
 
-    caHostname=`grep port ${prefix}-server.properties | head -1 | cut -f 1 -d ':'`
-    caPort=`grep port ${prefix}-server.properties | head -1 | cut -f 2 -d '='`
+    caHostname=`grep port ${prefix}-service.properties | head -1 | cut -f 1 -d ':'`
+    caPort=`grep port ${prefix}-service.properties | head -1 | cut -f 2 -d '='`
 
     sed -i "s/@@HOSTNAME@@/$(hostname -f)/" ${prefix}-service.xml
     sed -i "s/@@CA_HOSTNAME@@/${caHostname}/" ${prefix}-service.xml
