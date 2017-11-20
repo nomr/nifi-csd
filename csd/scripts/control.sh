@@ -398,7 +398,7 @@ update_logback_xml() {
 update_jaas_conf() {
     local nifi_principal=$(grep 'nifi.kerberos.service.principal=' nifi.properties | tail -1 | cut -d '=' -f 2)
 
-    sed -i -e 's|@@NIFI_PRINCIPAL@@|${nifi_principal}|' jaas.conf
+    sed -i -e "s|@@NIFI_PRINCIPAL@@|${nifi_principal}|" jaas.conf
 
     NIFI_JAVA_OPTS="${NIFI_JAVA_OPTS} -Djava.security.auth.login.config=${CONF_DIR}/conf/jaas.conf"
 }
