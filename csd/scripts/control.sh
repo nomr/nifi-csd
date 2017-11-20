@@ -326,13 +326,14 @@ create_authorizers_xml() {
              ${merge} ${in_a}
     rm -f ${in_a} ${in_b}
 
-    in=${out}
+    in_a=${out}
     out=authorizers.xml
     if [ $NIFI_JOIN_CLUSTER == 'true' ]; then
-      xmllint --format $in | grep -v -E '(Initial (User|Admin)|Node) Identity' > $out
+      xmllint --format $in_a | grep -v -E '(Initial (User|Admin)|Node) Identity' > $out
     else
-      xmllint --format $in > $out
+      xmllint --format $in_a > $out
     fi
+    rm -f ${in_a}
 }
 
 create_state_management_xml() {

@@ -83,6 +83,6 @@ nifi-$(PKG_VERSION)-bin.tar.gz: nifi-$(PKG_VERSION)-bin.tar.gz-SHA256
 %.png: %.ico
 	convert $< $@
 
-%.sdl: %.yaml
+%.sdl: %.yaml validator.jar
 	python yaml2json.py $< $@
 	java -jar validator.jar -l 'NIFI_TLS' -s $@
