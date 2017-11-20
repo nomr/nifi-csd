@@ -514,13 +514,15 @@ roles:
     - Filename
     - ProcessorID
     - Relationship
-  - {configName: nifi.provenance.repository.indexed.attributes, description: This
-      is a comma-separated list of FlowFile Attributes that should be indexed and
-      made searchable. It is blank by default. But some good examples to consider
-      are filename and mime.type as well as any custom attributes you might use which
-      are valuable for your use case, label: Provenance Repository Indexed Attributes
-      (comma separated), name: nifi_provenance_repository_indexed_attributes, required: false,
-    type: string}
+  - name: nifi_provenance_repository_indexed_attributes
+    configName: nifi.provenance.repository.indexed.attributes
+    label: Provenance Repository Indexed Attributes
+    description: 'List of FlowFile Attributes that should be indexed and
+      made searchable. Some good examples to consider are filename and mime.type as
+      well as any custom attributes you might use which are valuable for your use case.'
+    required: false
+    type: string_array
+    separator: ','
   - {configName: nifi.provenance.repository.index.shard.size, default: 500, description: 'The
       repository uses Apache Lucene to performing indexing and searching capabilities.
       This value indicates how large a Lucene Index should become before the Repository
