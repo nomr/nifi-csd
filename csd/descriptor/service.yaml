@@ -499,14 +499,21 @@ roles:
       the repository simultaneously, but 16 tends to work well in must environments.',
     label: Provenance Repository (Persistent) Journal Count, min: 1, name: nifi_provenance_repository_journal_count,
     required: false, type: long}
-  - {configName: nifi.provenance.repository.indexed.fields, default: 'EventType, FlowFileUUID,
-      Filename, ProcessorID, Relationship', description: 'This is a comma-separated
-      list of the fields that should be indexed and made searchable. Fields that are
+  - name: nifi_provenance_repository_indexed_fields
+    configName: nifi.provenance.repository.indexed.fields
+    label: Provenance Repository Indexed Fields
+    description: 'List of the fields that should be indexed and made searchable. Fields that are
       not indexed will not be searchable. Valid fields are: EventType, FlowFileUUID,
-      Filename, TransitURI, ProcessorID, AlternateIdentifierURI, Relationship, Details.
-      The default value is: EventType, FlowFileUUID, Filename, ProcessorID.', label: Provenance
-      Repository Indexed Fields (comma separated), name: nifi_provenance_repository_indexed_fields,
-    required: true, type: string}
+      Filename, TransitURI, ProcessorID, AlternateIdentifierURI, Relationship, Details.'
+    required: true
+    type: string_array
+    separator: ','
+    default:
+    - EventType
+    - FlowFileUUID
+    - Filename
+    - ProcessorID
+    - Relationship
   - {configName: nifi.provenance.repository.indexed.attributes, description: This
       is a comma-separated list of FlowFile Attributes that should be indexed and
       made searchable. It is blank by default. But some good examples to consider
