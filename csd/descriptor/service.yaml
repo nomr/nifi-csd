@@ -65,9 +65,19 @@ parameters:
   type: string_array
   separator: ' -X'
   default:
-  - mx512m
-  - ms512m
   - X:+UseG1GC
+- name: java_heap_size
+  configName: java.heap.size
+  label: Java Maximum(and Initial) heap size
+  description: Java's heap size set using -Xmx and -Xms
+  required: true
+  type: memory
+  unit: megabytes
+  scaleFactor: 1.3
+  autoConfigShare: 100
+  softMin: 512
+  default: 512
+
  
 - name: nifi_home
   configName: nifi.home
@@ -108,7 +118,7 @@ roles:
     environmentVariables:
       JAVA_HOME: '${java_home}'
       NIFI_HOME: '${nifi_home}'
-      NIFI_JAVA_OPTS: '-X${java_non_standard_options} -D${java_properties} -Dapp=NiFi'
+      NIFI_JAVA_OPTS: '-Xmx${java_heap_size}m -Xms${java_heap_size}m -X${java_non_standard_options} -D${java_properties} -Dapp=NiFi'
       NIFI_LOG_DIR: /var/log/nifi
       NIFI_PID_DIR: '${nifi_home}'
       NIFI_SSL_ENABLED: '${ssl_enabled}'
