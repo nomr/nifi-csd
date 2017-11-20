@@ -335,6 +335,8 @@ create_authorizers_xml() {
 }
 
 create_state_management_xml() {
+    local principal=$(grep 'nifi.kerberos.service.principal=' nifi.properties | tail -1 | cut -d '=' -f 2 | cut -d '/' -f 1)
+
     prefix=state-management
     convert_prefix_hadoop_xml ${prefix}
 
@@ -360,15 +362,18 @@ create_state_management_xml() {
 
     sed -i \
         -e "s|@@ZK_QUORUM@@|${ZK_QUORUM}|g" \
+        -e "s|@@ZK_ROOT@@|/${principal}|g" \
         $out
 }
 
 update_nifi_properties() {
     local num_of_nodes=$(cut -d ':' -f 1 nifi-nodes.properties | sort | uniq | wc -l)
+    local principal=$(grep 'nifi.kerberos.service.principal=' nifi.properties | tail -1 | cut -d '=' -f 2 | cut -d '/' -f 1)
 
     sed -i \
         -e "s|@@CDH_NIFI_HOME@@|${CDH_NIFI_HOME}|g" \
         -e "s|@@ZK_QUORUM@@|${ZK_QUORUM}|g" \
+        -e "s|@@ZK_ROOT@@|/${principal}|g" \
         -e "s|@@NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES@@|${num_of_nodes}|g" \
         nifi.properties
 

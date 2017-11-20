@@ -779,19 +779,6 @@ roles:
     min: 1
     softMin: 3
     default: 3
-  - name: nifi_zookeeper_root_node
-    configName: nifi.zookeeper.root.node
-    label: State Management Zookeeper Provider Root Node
-    description: 'The root ZNode that should be used in ZooKeeper. ZooKeeper provides a directory-like
-      structure for storing data. Each directory in this structure is referred to as a ZNode. This
-      denotes the root ZNode, or directory, that should be used for storing data.  This is important to
-      set correctly, as which cluster the NiFi instance attempts to join is determined by which
-      ZooKeeper instance it connects to and the ZooKeeper Root Node that is specified.'
-    required: true
-    type: path
-    pathType: serviceSpecific
-    conformRegex: /.*
-    default: /nifi
   - name: state_management_zk_provider_access_control
     label: State Management Zookeeper Provider Access Control
     configName: Access Control
@@ -972,8 +959,6 @@ roles:
         nifi_cluster_node_protocol_port, nifi_cluster_node_protocol_threads,
         nifi_cluster_node_protocol_max_threads, nifi_cluster_node_event_history_size,
         nifi_cluster_node_max_concurrent_requests,
-
-        nifi_zookeeper_root_node
         ]
       additionalConfigs:
       - {key: nifi.flow.configuration.file, value: '${nifi_home}/flow.xml.gz'}
@@ -1071,6 +1056,8 @@ roles:
 
       - key: nifi.zookeeper.connect.string
         value: '@@ZK_QUORUM@@'
+      - key: nifi.zookeeper.root.node
+        value: '@@ZK_ROOT@@'
       - key: nifi.zookeeper.connect.timeout
         value: '${nifi_zookeeper_connect_timeout} secs'
       - key: nifi.zookeeper.session.timeout
@@ -1112,7 +1099,7 @@ roles:
       - {key: id, value: zk-provider}
       - {key: class, value: org.apache.nifi.controller.state.providers.zookeeper.ZooKeeperStateProvider}
       - {key: Connect String, value: '@@ZK_QUORUM@@' }
-      - {key: Root Node, value: '${nifi_zookeeper_root_node}'}
+      - {key: Root Node, value: '@@ZK_ROOT@@'}
       - {key: Session Timeout, value: '${nifi_zookeeper_session_timeout} seconds'}
       - {key: Access Control, value: '${state_management_zk_provider_access_control}'}
       - {key: cdh.stateManagement.provider.type, value: cluster-provider}
