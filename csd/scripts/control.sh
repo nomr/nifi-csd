@@ -119,7 +119,7 @@ convert_prefix_hadoop_xml() {
 tls_client_init() {
     prefix=tls-conf/tls
 
-    convert_prefix_hadoop_xml ${prefix} aux/hadoop2element-value.xslt
+    convert_prefix_hadoop_xml ${prefix} ${CDH_NIFI_XSLT}/hadoop2element-value.xslt
 
     caHostname=`grep port ${prefix}-service.properties | head -1 | cut -f 1 -d ':'`
     caPort=`grep port ${prefix}-service.properties | head -1 | cut -f 2 -d '='`
@@ -129,7 +129,7 @@ tls_client_init() {
     sed -i "s/@@CA_PORT@@/${caPort}/" ${prefix}-service.xml
 
     # Merge TLS configuration
-    merge=aux/merge.xslt
+    merge=${CDH_NIFI_XSLT}/merge.xslt
     in_a=${prefix}-client.xml
     in_b=$(basename ${prefix}-service.xml) # relative paths only
     out=${prefix}.xml
@@ -139,7 +139,7 @@ tls_client_init() {
     rm -f ${in_a} ${in_b}
 
 
-    xsltproc aux/xml2json.xslt $out | jq '
+    xsltproc ${CDH_NIFI_XSLT}/xml2json.xslt $out | ${CDH_NIFI_JQ} '
       .configuration |
       .port=(.port| tonumber) |
       .days=(.days | tonumber) |
@@ -202,7 +202,7 @@ create_login_identity_providers_xml() {
     close_prefix_safety_valve_xml ${prefix} "loginIdentityProviders"
 
     # Merge Providers
-    merge=aux/merge.xslt
+    merge=${CDH_NIFI_XSLT}/merge.xslt
     in_a=${prefix}-kerberos.xml
     in_b=${prefix}-safety-valve.xml
     out=${prefix}.xml
@@ -217,8 +217,8 @@ create_node_identities_hadoop_xml() {
     local prefix=$1
     local property_prefix=$2
     local out=$prefix-node-identities.hadoop_xml
-    local dnPrefix=$(cat tls-conf/tls.json | jq -r .dnPrefix)
-    local dnSuffix=$(cat tls-conf/tls.json | jq -r .dnSuffix)
+    local dnPrefix=$(cat tls-conf/tls.json | ${CDH_NIFI_JQ} -r .dnPrefix)
+    local dnSuffix=$(cat tls-conf/tls.json | ${CDH_NIFI_JQ} -r .dnSuffix)
 
     echo '<?xml version="1.0" encoding="UTF-8"?>' > $out
     echo '<configuration>' >> $out
@@ -239,7 +239,7 @@ create_authorizers_access_policy_provider_with_nodes_hadoop_xml() {
     create_node_identities_hadoop_xml ${prefix} 'Node Identity '
 
     # Merge node identities
-    merge=aux/merge.xslt
+    merge=${CDH_NIFI_XSLT}/merge.xslt
     in_a=${prefix}-file.hadoop_xml
     in_b=${prefix}-node-identities.hadoop_xml
     out=${prefix}-with-nodes.hadoop_xml
@@ -255,7 +255,7 @@ create_authorizers_user_group_provider_with_nodes_hadoop_xml() {
     create_node_identities_hadoop_xml ${prefix} 'Initial User Identity 10'
 
     # Merge node identities
-    merge=aux/merge.xslt
+    merge=${CDH_NIFI_XSLT}/merge.xslt
     in_a=${prefix}-file.hadoop_xml
     in_b=${prefix}-node-identities.hadoop_xml
     out=${prefix}-with-nodes.hadoop_xml
@@ -277,7 +277,7 @@ create_authorizers_xml() {
     close_prefix_safety_valve_xml ${prefix} "authorizers"
      
     # Merge with User Group Providers
-    merge=aux/merge.xslt
+    merge=${CDH_NIFI_XSLT}/merge.xslt
     prefix=authorizers-user-group-provider
     in_a=${prefix}-with-nodes.xml
     in_b=${prefix}-safety-valve.xml
@@ -319,12 +319,20 @@ create_authorizers_xml() {
  
     in_a=${out}
     in_b=${prefix}-safety-valve.xml
-    out=authorizers.xml
+    out=authorizers-with-initial.xml
     xsltproc -o ${out} \
              --param with "'${in_b}'" \
              --param dontmerge "'authorizer'" \
              ${merge} ${in_a}
     rm -f ${in_a} ${in_b}
+
+    in=${out}
+    out=authorizers.xml
+    if [ $NIFI_JOIN_CLUSTER == 'true' ]; then
+      xmllint --format $in | grep -v -E '(Initial (User|Admin)|Node) Identity' > $out
+    else
+      xmllint --format $in > $out
+    fi
 }
 
 create_state_management_xml() {
@@ -334,7 +342,7 @@ create_state_management_xml() {
     close_prefix_safety_valve_xml ${prefix} "stateManagement"
 
     # Merge
-    merge=aux/merge.xslt
+    merge=${CDH_NIFI_XSLT}/merge.xslt
     in_a=${prefix}-local-provider.xml
     in_b=${prefix}-zk-provider.xml
     out=${prefix}-1.xml

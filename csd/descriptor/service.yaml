@@ -20,7 +20,7 @@ runAs:
 maxInstances: 1
 
 parcel:
-  repoUrl: https://github.com/nomr/nifi-parcel/releases/download/v1.4.0+nifi0.4.0
+  repoUrl: https://github.com/nomr/nifi-parcel/releases/download/v1.4.0+nifi0.6.1
   requiredTags: [nifi]
 
 serviceDependencies:
@@ -85,6 +85,7 @@ roles:
       NIFI_LOG_DIR: /var/log/nifi
       NIFI_PID_DIR: '${nifi_home}'
       NIFI_SSL_ENABLED: '${ssl_enabled}'
+      NIFI_JOIN_CLUSTER: '${authorizers_join_existing_cluster}'
 
   stopRunner:
     program: scripts/control.sh
@@ -176,6 +177,15 @@ roles:
     - {key: '1', value: <logger name="org.apache.nifi.StdErr" level="ERROR" additivity="false"/>}
 
   parameters:
+  - name: authorizers_join_existing_cluster
+    label: Join an existing cluster
+    description: If this node is joining an existing cluster then Initial Admin Identity,
+      Initial User, and Node Identity are not added to authorizers.xml
+    required: true
+    configurableInWizard: true
+    type: boolean
+    default: true
+
   - name: authorizers_access_policy_file_user_group_provider
     label: Authorizers File Access Policy Provider User Group Provider
     configName: User Group Provider
