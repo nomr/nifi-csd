@@ -43,6 +43,32 @@ parameters:
   type: path
   pathType: serviceSpecific
   default: /usr/java/jdk1.8.0_121
+- name: java_properties
+  configName: java.properties
+  label: Java properties
+  description: Java Properties set using -D 
+  required: true
+  type: string_array
+  separator: ' -D'
+  default:
+  - org.apache.jasper.compiler.disablejsr199=true
+  - java.security.egd=file:/dev/urandom
+  - sun.net.http.allowRestrictedHeaders=true
+  - java.net.preferIPv4Stack=true
+  - java.awt.headless=true
+  - java.protocol.handler.pkgs=sun.net.www.protocol
+- name: java_non_standard_options
+  configName: java.x.options
+  label: Java non-standard options
+  description: Java Options set using -X
+  required: true
+  type: string_array
+  separator: ' -X'
+  default:
+  - mx512m
+  - ms512m
+  - X:+UseG1GC
+ 
 - name: nifi_home
   configName: nifi.home
   label: NiFi Home directory
@@ -68,7 +94,7 @@ roles:
 - name: NIFI_SERVER
   label: Node
   pluralLabel: Nodes
-  jvmBased: 'true'
+  jvmBased: true
 
   externalLink:
     name: webserver_web_ui
@@ -78,24 +104,26 @@ roles:
 
   startRunner:
     program: scripts/control.sh
-    args: [nifi-run]
+    args: [nifi-start]
     environmentVariables:
       JAVA_HOME: '${java_home}'
       NIFI_HOME: '${nifi_home}'
+      NIFI_JAVA_OPTS: '-X${java_non_standard_options} -D${java_properties} -Dapp=NiFi'
       NIFI_LOG_DIR: /var/log/nifi
       NIFI_PID_DIR: '${nifi_home}'
       NIFI_SSL_ENABLED: '${ssl_enabled}'
       NIFI_JOIN_CLUSTER: '${authorizers_join_existing_cluster}'
 
-  stopRunner:
-    program: scripts/control.sh
-    args: [nifi-stop]
-    environmentVariables:
-      JAVA_HOME: '${java_home}'
-      NIFI_HOME: '${nifi_home}'
-      NIFI_LOG_DIR: /var/log/nifi
-      NIFI_PID_DIR: '${nifi_home}'
-      NIFI_SSL_ENABLED: '${ssl_enabled}'
+#  stopRunner:
+#    program: scripts/control.sh
+#    args: [nifi-stop]
+#    environmentVariables:
+#      JAVA_HOME: '${java_home}'
+#      NIFI_HOME: '${nifi_home}'
+#      NIFI_JAVA_OPTS: '-D${java_properties}'
+#      NIFI_LOG_DIR: /var/log/nifi
+#      NIFI_PID_DIR: '${nifi_home}'
+#      NIFI_SSL_ENABLED: '${ssl_enabled}'
 
   topology:
     minInstances: 0

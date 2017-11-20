@@ -379,6 +379,8 @@ update_nifi_properties() {
             -e 's/nifi\.web\.http\./nifi.web.https./' \
             nifi.properties
     fi
+
+    NIFI_JAVA_OPTS="${NIFI_JAVA_OPTS} -Dnifi.properties.file.path=${CONF_DIR}/conf/nifi.properties"
 }
 
 init_bootstrap() {
@@ -440,6 +442,8 @@ update_jaas_conf() {
     local nifi_principal=$(grep 'nifi.kerberos.service.principal=' nifi.properties | tail -1 | cut -d '=' -f 2)
 
     sed -i -e 's|@@NIFI_PRINCIPAL@@|${nifi_principal}|' jaas.conf
+
+    NIFI_JAVA_OPTS="${NIFI_JAVA_OPTS} -Djava.security.auth.login.config=${CONF_DIR}/conf/jaas.conf"
 }
 
 nifi_run() {
@@ -460,12 +464,22 @@ nifi_run() {
     echo
 }
 
+nifi_start() {
+    NIFI_JAVA_OPTS="${CSD_JAVA_OPTS} ${NIFI_JAVA_OPTS}"
+    run_nifi_cmd="'${JAVA}' -cp '${CONF_DIR}:${CDH_NIFI_HOME}/lib/*' ${NIFI_JAVA_OPTS} org.apache.nifi.NiFi"
+    eval "cd ${CONF_DIR} && exec ${run_nifi_cmd}"
+}
+
 nifi() {
     nifi_init "$1"
     nifi_run "$@"
 }
 
 case "$1" in
+    nifi-start)
+        nifi_init "${1//nifi-}"
+        nifi_start
+        ;;
     nifi-run|nifi-stop)
         nifi ${1//nifi-/} "${@:2}"
         ;;
