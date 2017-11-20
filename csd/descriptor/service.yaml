@@ -33,6 +33,21 @@ rolesWithExternalLinks: [NIFI_SERVER]
 
 kerberos: true
 
+commands:
+- name: server_remove_ssl
+  label: Remove TLS files
+  description: Removes TLS NiFi files (keystore and truststore)
+  roleCommand: server_remove_ssl
+  roleName: NIFI_SERVER
+  runMode: "all"
+- name: server_remove_state
+  label: Remove NiFi Auth Users & Flow
+  description: Removes NiFi authorizations.xml, users.xml and flow.xml.gz files
+  roleCommand: server_remove_state
+  roleName: NIFI_SERVER
+  runMode: "all"
+
+
 parameters:
 - name: java_home
   configName: java.home
@@ -70,7 +85,7 @@ roles:
   startRunner:
     program: scripts/control.sh
     args: [nifi-start]
-    environmentVariables:
+    environmentVariables: &environment_variables
       JAVA_HOME: '${java_home}'
       NIFI_HOME: '${nifi_home}'
       NIFI_JAVA_OPTS: '-Xmx${java_heap_size}m -Xms${java_heap_size}m -X${java_non_standard_options} -D${java_properties} -Dapp=NiFi'
@@ -89,6 +104,26 @@ roles:
 #      NIFI_LOG_DIR: /var/log/nifi
 #      NIFI_PID_DIR: '${nifi_home}'
 #      NIFI_SSL_ENABLED: '${ssl_enabled}'
+
+  commands:
+  - name: server_remove_ssl
+    label: Remove TLS Files
+    description: Removes the keystore and truststore files on stopped nodes
+    expectedExitCodes: [0]
+    requiredRoleState: stopped
+    commandRunner:
+      program: scripts/control.sh
+      args: [nifi-reset, ssl]
+      environmentVariables: *environment_variables
+  - name: server_remove_state
+    label: Reset NiFi State
+    description: Removes NiFi state files on stopped nodes.
+    expectedExitCodes: [0]
+    requiredRoleState: stopped
+    commandRunner:
+      program: scripts/control.sh
+      args: [nifi-reset, state]
+      environmentVariables: *environment_variables
 
   topology:
     minInstances: 0
@@ -1113,6 +1148,24 @@ roles:
       - {key: keyPassword, value: '${ssl_server_keystore_keypassword}'}
       - {key: trustStore, value: '${ssl_client_truststore_location}'}
       - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
+
+    - filename: nifi-reset.properties
+      configFormat: properties
+      additionalConfigs:
+      - key: ssl
+        value: 'rm -f ${ssl_server_keystore_location} ${ssl_client_truststore_location}'
+      - key: state
+        value: rm -rf
+          ${nifi_home}/archive
+          ${nifi_home}/work
+          ${nifi_home}/authorizations.xml
+          ${nifi_home}/flow.xml.gz
+          ${nifi_home}/users.xml
+          ${nifi_content_repository_directory_default}/*
+          ${nifi_database_directory}/*
+          ${nifi_flow_configuration_archive_enabled}/*
+          ${nifi_provenance_repository_directory_default}/*
+          ${state_management_local_provider_directory}/*
 
     - filename: nifi-variable-registry.properties
       configFormat: properties
