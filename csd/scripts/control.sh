@@ -190,8 +190,6 @@ nifi_init() {
     find ${CONF_DIR} -maxdepth 1 -type f -name '*.conf' -exec ln -sf {} ${CONF_DIR}/conf \;
     find ${CONF_DIR} -maxdepth 1 -type f -name '*.xml' -exec ln -sf {} ${CONF_DIR}/conf \;
     find ${CONF_DIR} -maxdepth 1 -type f -name '*.properties' -exec ln -sf {} ${CONF_DIR}/conf \;
-
-    init_bootstrap
 }
 
 create_login_identity_providers_xml() {
@@ -383,55 +381,14 @@ update_nifi_properties() {
     NIFI_JAVA_OPTS="${NIFI_JAVA_OPTS} -Dnifi.properties.file.path=${CONF_DIR}/conf/nifi.properties"
 }
 
-init_bootstrap() {
-    BOOTSTRAP_LIBS="${CDH_NIFI_HOME}/lib/bootstrap/*"
-
-    BOOTSTRAP_CLASSPATH="${CONF_DIR}:${BOOTSTRAP_LIBS}"
-    if [ -n "${TOOLS_JAR}" ]; then
-        BOOTSTRAP_CLASSPATH="${TOOLS_JAR}:${BOOTSTRAP_CLASSPATH}"
-    fi
-
-    #setup directory parameters
-    BOOTSTRAP_LOG_PARAMS="-Dorg.apache.nifi.bootstrap.config.log.dir='${NIFI_LOG_DIR}'"
-    BOOTSTRAP_PID_PARAMS="-Dorg.apache.nifi.bootstrap.config.pid.dir='${NIFI_PID_DIR}'"
-    BOOTSTRAP_CONF_PARAMS="-Dorg.apache.nifi.bootstrap.config.file='${CONF_DIR}/conf/bootstrap.conf'"
-
-    BOOTSTRAP_DIR_PARAMS="${BOOTSTRAP_LOG_PARAMS} ${BOOTSTRAP_PID_PARAMS} ${BOOTSTRAP_CONF_PARAMS}"
-}
-
 update_bootstrap_conf() {
     BOOTSTRAP_CONF="${CONF_DIR}/bootstrap.conf";
     # Update bootstrap.conf
     insert_if_not_exists "lib.dir=${CONF_DIR}/lib" ${BOOTSTRAP_CONF}
     insert_if_not_exists "conf.dir=${CONF_DIR}/conf" ${BOOTSTRAP_CONF}
 
-    # Disable JSR 199 so that we can use JSP's without running a JDK
-    insert_if_not_exists "java.arg.1=-Dorg.apache.jasper.compiler.disablejsr199=true" ${BOOTSTRAP_CONF}
-    # JVM memory settings
-    insert_if_not_exists "java.arg.2=-Xms512m" ${BOOTSTRAP_CONF}
-    insert_if_not_exists "java.arg.3=-Xmx512m" ${BOOTSTRAP_CONF}
-
     # Enable Remote Debugging
     #java.arg.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=8000
-
-    insert_if_not_exists "java.arg.4=-Djava.net.preferIPv4Stack=true" ${BOOTSTRAP_CONF}
-
-    # allowRestrictedHeaders is required for Cluster/Node communications to work properly
-    insert_if_not_exists "java.arg.5=-Dsun.net.http.allowRestrictedHeaders=true" ${BOOTSTRAP_CONF}
-    insert_if_not_exists "java.arg.6=-Djava.protocol.handler.pkgs=sun.net.www.protocol" ${BOOTSTRAP_CONF}
-
-    # Use the JAAS file
-    insert_if_not_exists "java.arg.7=-Djava.security.auth.login.config=./jaas.conf" ${BOOTSTRAP_CONF}
-
-    # The G1GC is still considered experimental but has proven to be very advantageous in providing great
-    # performance without significant "stop-the-world" delays.
-    insert_if_not_exists "java.arg.13=-XX:+UseG1GC" ${BOOTSTRAP_CONF}
-
-    #Set headless mode by default
-    insert_if_not_exists "java.arg.14=-Djava.awt.headless=true" ${BOOTSTRAP_CONF}
-
-    # Sets the provider of SecureRandom to /dev/urandom to prevent blocking on VMs
-    insert_if_not_exists "java.arg.15=-Djava.security.egd=file:/dev/urandom" ${BOOTSTRAP_CONF}
 }
 
 update_logback_xml() {
