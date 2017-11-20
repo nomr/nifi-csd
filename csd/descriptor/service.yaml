@@ -287,13 +287,28 @@ roles:
   - {default: 30, description: The interval at which the User Interface auto-refreshes.,
     label: UI Autorefresh Interval, min: 1, name: nifi_ui_autorefresh_interval, required: true,
     type: long, unit: seconds}
-  - {configName: nifi.database.directory, conformRegex: /.*, default: /data/nifi/database,
-    description: The path to the database directory, label: H2 Database Directory,
-    mode: '0750', name: nifi_database_directory, pathType: localDataDir, required: true,
-    type: path}
-  - {configName: nifi.h2.url.append, default: ;LOCK_TIMEOUT=25000;WRITE_DELAY=0;AUTO_SERVER=FALSE,
-    description: Options to append to H2's connect string, label: H2 URL Append Options,
-    name: nifi_database_h2_url, required: true, type: string}
+
+  - name: nifi_database_directory
+    configName: nifi.database.directory
+    label: H2 Database Directory
+    description: The path to the database directory
+    required: true
+    type: path
+    pathType: localDataDir
+    conformRegex: /.*
+    mode: '0750'
+    default: /data/nifi/database
+  - name: nifi_database_h2_url_append
+    configName: nifi.h2.url.append
+    label: H2 Connect String Options
+    description: Options to append to H2's connect string
+    required: true
+    type: string_array
+    separator: ';'
+    default:
+    - LOCK_TIMEOUT=25000
+    - WRITE_DELAY=0
+    - AUTO_SERVER=FALSE
 
   - name: nifi_security_user_authorizer
     configName: nifi.security.user.authorizer
@@ -892,8 +907,11 @@ roles:
         propertyName: nifi.kerberos.spnego.principal
 
       includedParams: [nifi_flow_configuration_archive_enabled, nifi_flow_configuration_archive_max_count,
-        nifi_flowcontroller_auto_resume_state, nifi_ui_banner_text, nifi_database_directory,
-        nifi_database_h2_url, nifi_flowfile_repository_implementation, nifi_flowfile_repository_directory,
+        nifi_flowcontroller_auto_resume_state, nifi_ui_banner_text,
+
+        nifi_database_directory,
+
+        nifi_flowfile_repository_implementation, nifi_flowfile_repository_directory,
         nifi_flowfile_repository_partitions, nifi_flowfile_repository_always_sync,
         nifi_swap_queue_threshold, nifi_swap_in_threads, nifi_swap_out_threads, nifi_content_repository_implementation,
         nifi_content_claim_max_flow_files, nifi_content_repository_directory_default,
@@ -943,6 +961,10 @@ roles:
       - {key: nifi.templates.directory, value: '${nifi_home}/templates'}
       - {key: nifi.ui.autorefresh.interval, value: '${nifi_ui_autorefresh_interval}
           sec'}
+
+      - key: nifi.h2.url.append
+        value: ;${nifi_database_h2_url_append}
+
       - {key: nifi.nar.library.directory, value: '@@CDH_NIFI_HOME@@/lib'}
       - {key: nifi.nar.working.directory, value: '${nifi_home}/work/nar'}
       - {key: nifi.documentation.working.directory, value: '${nifi_home}/work/docs/components'}
