@@ -250,10 +250,6 @@ roles:
       ones (key: Initial Identity [unique id], value: )', label: Authorizers File
       User Group Provider Initial Identity 1, name: authorizers_user_group_provider_file_initial_identity,
     required: 'true', type: string}
-  - {configName: Default Realm, default: HADOOP.APACHE.ORG, description: Default realm
-      to provide when user enters incomplete user principal., label: Login Kerberos
-      Identity Provider Default Realm, name: login_identity_providers_kerberos_default_realm,
-    required: false, type: string}
   - {default: '12', description: 'The duration of how long the user authentication
       is valid for. If the user never logs out, they will be required to log back
       in following this duration.', label: Login Kerberos Identity Provider Authentication
@@ -958,7 +954,7 @@ roles:
       - {key: class, value: org.apache.nifi.kerberos.KerberosProvider}
       - {key: Authentication Expiration, value: '${login_identity_providers_kerberos_authentication_expiration}
           hours'}
-      - {key: Default Realm, value: '${login_identity_providers_kerberos_default_realm}'}
+      - {key: Default Realm, value: '@@REALM@@'}
       - {key: cdh.login.identity.providers.type, value: provider}
 
     - filename: nifi.properties

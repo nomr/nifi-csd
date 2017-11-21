@@ -199,7 +199,8 @@ nifi_init() {
 }
 
 create_login_identity_providers_xml() {
-    prefix=login-identity-providers
+    local prefix=login-identity-providers
+    local realm=$(echo ${nifi_principal} | cut -d '@' -f 2)
 
     convert_prefix_hadoop_xml ${prefix}
 
@@ -215,6 +216,11 @@ create_login_identity_providers_xml() {
              --param dontmerge "'provider'" \
              ${merge} ${in_a}
     rm -f ${in_a} ${in_b}
+
+    sed -i \
+        -e "s|@@REALM@@|${realm}|g" \
+        $out
+
 }
 
 create_node_identities_hadoop_xml() {
@@ -341,7 +347,7 @@ create_authorizers_xml() {
 }
 
 create_state_management_xml() {
-    local principal=$(grep 'nifi.kerberos.service.principal=' nifi.properties | tail -1 | cut -d '=' -f 2 | cut -d '/' -f 1)
+    local principal=$(echo ${nifi_pricipal} | cut -d '/' -f 1)
 
     prefix=state-management
     convert_prefix_hadoop_xml ${prefix}
@@ -374,7 +380,7 @@ create_state_management_xml() {
 
 update_nifi_properties() {
     local num_of_nodes=$(cut -d ':' -f 1 nifi-nodes.properties | sort | uniq | wc -l)
-    local principal=$(grep 'nifi.kerberos.service.principal=' nifi.properties | tail -1 | cut -d '=' -f 2 | cut -d '/' -f 1)
+    local principal=$(echo ${nifi_principal} | cut -d '/' -f 1)
 
     sed -i \
         -e "s|@@CDH_NIFI_HOME@@|${CDH_NIFI_HOME}|g" \
@@ -407,8 +413,6 @@ update_logback_xml() {
 }
 
 update_jaas_conf() {
-    local nifi_principal=$(grep 'nifi.kerberos.service.principal=' nifi.properties | tail -1 | cut -d '=' -f 2)
-
     sed -i \
         -e "s|@@CONF_DIR@@|${CONF_DIR}|" \
         -e "s|@@NIFI_PRINCIPAL@@|${nifi_principal}|" \
