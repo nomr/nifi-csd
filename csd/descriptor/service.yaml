@@ -814,6 +814,15 @@ roles:
     min: 1
     softMin: 3
     default: 3
+  - name: nifi_zookeeper_auth_type
+    configName: nifi.zookeeper.auth.type
+    label: Zookeeper Authentication Type
+    description: Zookeeper Authentication Type
+    required: true
+    type: string_enum
+    validValues: [default, sasl]
+    default: default
+
   - name: state_management_zk_provider_access_control
     label: State Management Zookeeper Provider Access Control
     configName: Access Control
@@ -994,6 +1003,8 @@ roles:
         nifi_cluster_node_protocol_port, nifi_cluster_node_protocol_threads,
         nifi_cluster_node_protocol_max_threads, nifi_cluster_node_event_history_size,
         nifi_cluster_node_max_concurrent_requests,
+
+        nifi_zookeeper_auth_type
         ]
       additionalConfigs:
       - {key: nifi.flow.configuration.file, value: '${nifi_home}/flow.xml.gz'}
@@ -1097,8 +1108,6 @@ roles:
         value: '${nifi_zookeeper_connect_timeout} secs'
       - key: nifi.zookeeper.session.timeout
         value: '${nifi_zookeeper_session_timeout} secs'
-      - key: nifi.zookeeper.auth.type
-        value: 'default'
       - key: nifi.zookeeper.kerberos.removeHostFromPrincipal
         value: true
       - key: nifi.zookeeper.kerberos.removeRealmFromPrincipal
