@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<authorizations>
+    <policies>
+        <policy identifier="@@POLICY_GUID_FLOW_R@@" resource="/flow" action="R">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
+        </policy>
+        <policy identifier="@@POLICY_GUID_RESTRICTED_COMPONENTS_W@@" resource="/restricted-components" action="W">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
+        </policy>
+        <policy identifier="@@POLICY_GUID_TENANTS_R@@" resource="/tenants" action="R">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
+        </policy>
+        <policy identifier="@@POLICY_GUID_TENANTS_W@@" resource="/tenants" action="W">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
+        </policy>
+        <policy identifier="@@POLICY_GUID_POLICIES_R@@" resource="/policies" action="R">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
+        </policy>
+        <policy identifier="@@POLICY_GUID_POLICIES_W@@" resource="/policies" action="W">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
+        </policy>
+        <policy identifier="@@POLICY_GUID_CONTROLLER_R@@" resource="/controller" action="R">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
+        </policy>
+        <policy identifier="@@POLICY_GUID_CONTROLLER_W@@" resource="/controller" action="W">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
+        </policy>
+        <policy identifier="@@POLICY_GUID_PROXY_W@@" resource="/proxy" action="W">
+            <group identifier="@@CM_NODE_GUID@@"/>
+        </policy>
