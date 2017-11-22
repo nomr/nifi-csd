@@ -691,9 +691,10 @@ roles:
       is 10 characters. Be aware that once this password is set and one or more sensitive
       processor properties have been configured, this password should not be changed.'
     required: true
+    configurableInWizard: true
     sensitive: true
     type: password
-    initType: randomBase64
+    default: KY2ncTD7dTJzzMsUSBamefaG
 
   - name: nifi_cluster_protocol_heartbeat_interval
     configName: nifi.cluster.protocol.heartbeat.interval
