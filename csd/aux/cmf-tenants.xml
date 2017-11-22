@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<tenants>
+    <groups>
+        <group identifier="@@CM_NODE_GUID@@" name="cm-nodes">
+            <user identifier="@@NODE_X_GUID@@"/>
+        </group>
+        <group identifier="@@CM_ADMIN_GUID@@" name="cm-admin">
+            <user identifier="@@ADMIN_GUID@@"/>
+        </group>
+    </groups>
+    <users>
+        <user identifier="@@NODE_X_GUID@@" identity="CN=cm.inst.sodre.star.cns.0ae.co, OU=NIFI"/>
+        <user identifier="@@ADMIN_GUID@@" identity="root@SODRE.0AE.CO"/>
+    </users>
+</tenants>

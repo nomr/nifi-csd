@@ -33,6 +33,12 @@ rolesWithExternalLinks: [NIFI_SERVER]
 
 kerberos: true
 
+serviceInit:
+  preStartSteps:
+    - commandName: server_remove_ssl
+    - commandName: server_remove_state
+    - commandName: server_deploy_authorizations
+
 commands:
 - name: server_remove_ssl
   label: Remove TLS files
@@ -46,6 +52,13 @@ commands:
   roleCommand: server_remove_state
   roleName: NIFI_SERVER
   runMode: "all"
+- name: server_deploy_authorizations
+  label: Deploy Cloudera's Default Authorizations
+  description: Deploy's Cloudera's Default Authorizations
+  roleCommand: server_deploy_authorizations
+  roleName: NIFI_SERVER
+  runMode: "all"
+
 
 
 parameters:
@@ -92,7 +105,9 @@ roles:
       NIFI_LOG_DIR: /var/log/nifi
       NIFI_PID_DIR: '${nifi_home}'
       NIFI_SSL_ENABLED: '${ssl_enabled}'
+      NIFI_SEED: '${nifi_sensitive_props_key}'
       NIFI_JOIN_CLUSTER: '${authorizers_join_existing_cluster}'
+      NIFI_CMF_ADMINS: '${cmf_admins}'
 
 #  stopRunner:
 #    program: scripts/control.sh
@@ -124,6 +139,14 @@ roles:
       program: scripts/control.sh
       args: [nifi-reset, state]
       environmentVariables: *environment_variables
+  - name: server_deploy_authorizations
+    label: Deploy Cloudera's Default Authorizations
+    description: Deploy's Cloudera's Default Authorizations
+    expectedExitCodes: [0]
+    commandRunner:
+      program: scripts/control.sh
+      args: [nifi-reset, cloudera_authorizations]
+      environmentVariables: *environment_variables
 
   topology:
     minInstances: 0
@@ -143,10 +166,13 @@ roles:
   kerberosPrincipals:
   - name: nifi_principal
     primary: ${principal}
-    instance : ${host}
+    instance: ${host}
   - name: nifi_spnego_principal
     primary: HTTP
-    instance : ${host}
+    instance: ${host}
+  - name: nifi_admin_principal
+    primary: ${principal}
+    instance: nifi-admin
 
   logging:
     dir: /var/log/nifi
@@ -204,7 +230,23 @@ roles:
     - {key: '1', value: <logger name="org.apache.nifi.StdOut" level="INFO" additivity="false"/>}
     - {key: '1', value: <logger name="org.apache.nifi.StdErr" level="ERROR" additivity="false"/>}
 
+    - {key: '1', value: <logger name="org.apache.nifi.controller.cluster.ClusterProtocolHeartbeater"
+        level="WARN" additivity="false"/>}
+    - {key: '1', value: <logger name="org.apache.nifi.cluster.protocol.impl.SocketProtocolListener"
+        level="WARN" additivity="false"/>}
+    - {key: '1', value: <logger name="org.apache.nifi.cluster.coordination.heartbeat.AbstractHeartbeatMonitor"
+        level="WARN" additivity="false"/>}
+
+
   parameters:
+  - name: cmf_admins
+    configName: cmf_admins
+    label: NiFi Administrator Identities
+    description: Identities that will be granted Admin access to NiFi.
+    required: false
+    type: string_array
+    separator: '^'
+
   - name: authorizers_join_existing_cluster
     label: Join an existing cluster
     description: If this node is joining an existing cluster then Initial Admin Identity,
@@ -222,20 +264,9 @@ roles:
       users and groups for use in the managed access policies.
     required: true
     type: string_enum
-    validValues: [file-user-group-provider]
-    default: file-user-group-provider
+    validValues: [composite-configurable, cloudera]
+    default: composite-configurable
 
-  - {configName: Initial Admin Identity, description: 'The identity of an initial
-      admin user that will be granted access to the UI and given the ability to create
-      additional users, groups, and policies. The value of this property could be
-      a DN when using certificates or LDAP, or a Kerberos principal. This property
-      will only be used when there are no other policies defined. If this property
-      is specified then a Legacy Authorized Users File can not be specified. NOTE:
-      Any identity mapping rules specified in nifi.properties will also be applied
-      to the initial admin identity, so the value should be the unmapped identity.
-      This identity must be found in the configured User Group Provider.', label: Authorizers
-      File Access Policy Provider Initial Admin Identity, name: authorizers_access_policy_file_initial_admin_identity,
-    required: true, type: string}
   - name: authorizers_authorizer_managed_access_policy_provider
     configName: Access Policy Provider
     label: Authorizers Managed Authorizer Access Policy Provider
@@ -245,11 +276,6 @@ roles:
     validValues: [file-access-policy-provider]
     default: file-access-policy-provider
 
-  - {configName: Initial User Identity 1, description: 'The <bd>umapped</bd> identity
-      of a users and systems to seed the Users File. Use the safety-valve to add additional
-      ones (key: Initial Identity [unique id], value: )', label: Authorizers File
-      User Group Provider Initial Identity 1, name: authorizers_user_group_provider_file_initial_identity,
-    required: 'true', type: string}
   - {default: '12', description: 'The duration of how long the user authentication
       is valid for. If the user never logs out, they will be required to log back
       in following this duration.', label: Login Kerberos Identity Provider Authentication
@@ -892,12 +918,16 @@ roles:
 
   configWriter:
     auxConfigGenerators:
+    - filename: authorizations-safety-valve.xml
+      sourceFilename: aux/authorizations-safety-valve.xml
     - filename: authorizers-access-policy-provider-safety-valve.xml
       sourceFilename: aux/authorizers-access-policy-provider-safety-valve.xml
     - filename: authorizers-authorizer-safety-valve.xml
       sourceFilename: aux/authorizers-authorizer-safety-valve.xml
     - filename: authorizers-user-group-provider-safety-valve.xml
       sourceFilename: aux/authorizers-user-group-provider-safety-valve.xml
+    - filename: cmf-tenants-groups-safety-valve.hadoop.xml
+      sourceFilename: aux/cmf-tenants-groups-safety-valve.xml
     - filename: jaas.conf
       sourceFilename: aux/jaas.conf
     - filename: login-identity-providers-safety-valve.xml
@@ -912,8 +942,7 @@ roles:
       additionalConfigs:
       - {key: identifier, value: file-access-policy-provider}
       - {key: class, value: org.apache.nifi.authorization.FileAccessPolicyProvider}
-      - {key: User Group Provider, value: '${authorizers_access_policy_file_user_group_provider}'}
-      - {key: Initial Admin Identity, value: '${authorizers_access_policy_file_initial_admin_identity}'}
+      - {key: User Group Provider, value: '${authorizers_access_policy_file_user_group_provider}-user-group-provider'}
       - {key: Authorizations File, value: '${nifi_home}/authorizations.xml'}
       - {key: cdh.authorizers.type, value: accessPolicyProvider}
 
@@ -926,15 +955,38 @@ roles:
       - {key: Access Policy Provider, value: '${authorizers_authorizer_managed_access_policy_provider}'}
       - {key: cdh.authorizers.type, value: authorizer}
 
+    - filename: authorizers-user-group-provider-cloudera.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams: []
+      additionalConfigs:
+      - {key: identifier, value: cloudera-user-group-provider}
+      - {key: class, value: org.apache.nifi.authorization.FileUserGroupProvider}
+      - {key: Users File, value: '@@CONF_DIR@@/cmf-tenants.xml'}
+      - {key: cdh.authorizers.type, value: userGroupProvider}
+
     - filename: authorizers-user-group-provider-file.hadoop_xml
       configFormat: hadoop_xml
       includedParams: []
       additionalConfigs:
       - {key: identifier, value: file-user-group-provider}
       - {key: class, value: org.apache.nifi.authorization.FileUserGroupProvider}
-      - {key: Initial User Identity 1, value: '${authorizers_user_group_provider_file_initial_identity}'}
       - {key: Users File, value: '${nifi_home}/users.xml'}
       - {key: cdh.authorizers.type, value: userGroupProvider}
+
+    - filename: authorizers-user-group-provider-composite-configurable.hadoop_xml
+      configFormat: hadoop_xml
+      includedParams: []
+      additionalConfigs:
+      - key: identifier
+        value: composite-configurable-user-group-provider
+      - key: class
+        value: org.apache.nifi.authorization.CompositeConfigurableUserGroupProvider
+      - key: Configurable User Group Provider
+        value: file-user-group-provider
+      - key: User Group Provider Cloudera
+        value: cloudera-user-group-provider
+      - key: cdh.authorizers.type
+        value: userGroupProvider
 
     - filename: bootstrap.conf
       configFormat: properties
@@ -1171,6 +1223,8 @@ roles:
           ${nifi_flow_configuration_archive_enabled}/*
           ${nifi_provenance_repository_directory_default}/*
           ${state_management_local_provider_directory}/*
+      - key: cloudera_authorizations
+        value: cp -f authorizations.xml ${nifi_home}/authorizations.xml
 
     - filename: nifi-variable-registry.properties
       configFormat: properties

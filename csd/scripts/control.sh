@@ -107,6 +107,11 @@ close_prefix_safety_valve_xml() {
     for sv_xml in `find . -type f -name "${prefix}-*safety-valve.xml"`; do
         close_xml_file "${xml_tag}" ${sv_xml}
     done
+
+    # hadoop.xml or hadoop_xml files use "configuration" as xml_tag
+    for sv_xml in `find . -type f -name "${prefix}-*safety-valve.hadoop[_,.]xml"`; do
+        close_xml_file "configuration" ${sv_xml}
+    done
 }
 
 convert_prefix_hadoop_xml() {
@@ -116,8 +121,8 @@ convert_prefix_hadoop_xml() {
     local basename=$(basename $prefix)
     local dirname=$(dirname $prefix)
 
-    for h_xml in `find ${dirname} -type f -name "${basename}-*.hadoop_xml"`; do
-        xsltproc -o ${h_xml//hadoop_xml/xml} ${xslt} ${h_xml}
+    for h_xml in `find ${dirname} -type f -name "${basename}-*.hadoop[_,.]xml"`; do
+        xsltproc -o ${h_xml//hadoop[_.]xml/xml} ${xslt} ${h_xml}
         rm -f ${h_xml}
     done
 }
@@ -189,6 +194,8 @@ nifi_init() {
     [ -e 'login-identity-providers.xml' ] || create_login_identity_providers_xml
     [ -e 'state-management.xml' ] || create_state_management_xml
     [ -e 'authorizers.xml' ] || create_authorizers_xml
+    [ -e 'cmf-tenants.xml' ] || create_cmf_tenants_xml
+    [ -e 'authorizations.xml' ] || create_authorizations_xml
 
     update_logback_xml
     update_nifi_properties
@@ -223,73 +230,59 @@ create_login_identity_providers_xml() {
 
 }
 
-create_node_identities_hadoop_xml() {
-    local prefix=$1
-    local property_prefix=$2
-    local out=$prefix-node-identities.hadoop_xml
-    local dnPrefix=$(cat tls-conf/tls.json | ${CDH_NIFI_JQ} -r .dnPrefix)
-    local dnSuffix=$(cat tls-conf/tls.json | ${CDH_NIFI_JQ} -r .dnSuffix)
+create_authorizations_xml() {
+    local prefix=authorizations
 
-    echo '<?xml version="1.0" encoding="UTF-8"?>' > $out
-    echo '<configuration>' >> $out
+    close_prefix_safety_valve_xml ${prefix} "policies></authorizations"
 
-    arr=($(cut -d ':' -f 1 nifi-nodes.properties | sort | uniq ))
-    for ix in ${!arr[*]}; do
-      echo '  <property>' >> $out
-      echo "    <name>${property_prefix}${ix}</name>" >> $out
-      echo "    <value>${dnPrefix}${arr[$ix]}${dnSuffix}</value>" >> $out
-      echo '  </property>' >> $out
-    done
+    in=${prefix}-safety-valve.xml
+    out=${prefix}.xml
+    xmllint --format $in > $out
+    rm -f $in
 
-    echo '</configuration>' >> $out
+    sed -i \
+        -e "s|@@POLICY_GUID_FLOW_R@@|$(guid /flow/R)|" \
+        -e "s|@@POLICY_GUID_RESTRICTED_COMPONENTS_W|$(guid /restricted-components/W)|" \
+        -e "s|@@POLICY_GUID_TENANTS_R|$(guid /tenants/R)|" \
+        -e "s|@@POLICY_GUID_TENANTS_W|$(guid /tenants/W)|" \
+        -e "s|@@POLICY_GUID_POLICIES_R|$(guid /policies/R)|" \
+        -e "s|@@POLICY_GUID_POLICIES_W|$(guid /policies/W)|" \
+        -e "s|@@POLICY_GUID_CONTROLLER_R|$(guid /controller/R)|" \
+        -e "s|@@POLICY_GUID_CONTROLLER_W|$(guid /controller/W)|" \
+        -e "s|@@POLICY_GUID_PROXY_W|$(guid /proxy/W)|" \
+        -e "s|@@CM_NODE_GUID@@|$(guid cmf-nodes)|" \
+        -e "s|@@CM_ADMIN_GUID@@|$(guid cmf-admins)|" \
+        $out
 }
-
-create_authorizers_access_policy_provider_with_nodes_hadoop_xml() {
-    local prefix=authorizers-access-policy-provider
-    create_node_identities_hadoop_xml ${prefix} 'Node Identity '
-
-    # Merge node identities
-    merge=${CDH_NIFI_XSLT}/merge.xslt
-    in_a=${prefix}-file.hadoop_xml
-    in_b=${prefix}-node-identities.hadoop_xml
-    out=${prefix}-with-nodes.hadoop_xml
-    xsltproc -o ${out} \
-             --param with "'${in_b}'" \
-             --param dontmerge "'property'" \
-             ${merge} ${in_a}
-    rm -f ${in_a} ${in_b}
-}
-
-create_authorizers_user_group_provider_with_nodes_hadoop_xml() {
-    local prefix=authorizers-user-group-provider
-    create_node_identities_hadoop_xml ${prefix} 'Initial User Identity 10'
-
-    # Merge node identities
-    merge=${CDH_NIFI_XSLT}/merge.xslt
-    in_a=${prefix}-file.hadoop_xml
-    in_b=${prefix}-node-identities.hadoop_xml
-    out=${prefix}-with-nodes.hadoop_xml
-    xsltproc -o ${out} \
-             --param with "'${in_b}'" \
-             --param dontmerge "'property'" \
-             ${merge} ${in_a}
-    rm -f ${in_a} ${in_b}
-}
-
 
 create_authorizers_xml() {
-    create_authorizers_access_policy_provider_with_nodes_hadoop_xml
-    create_authorizers_user_group_provider_with_nodes_hadoop_xml
-
     local prefix=authorizers
 
     convert_prefix_hadoop_xml ${prefix}
     close_prefix_safety_valve_xml ${prefix} "authorizers"
-     
+
     # Merge with User Group Providers
     merge=${CDH_NIFI_XSLT}/merge.xslt
     prefix=authorizers-user-group-provider
-    in_a=${prefix}-with-nodes.xml
+    in_a=${prefix}-file.xml
+    in_b=${prefix}-cloudera.xml
+    out=${prefix}-1.xml
+    xsltproc -o ${out} \
+             --param with "'${in_b}'" \
+             --param dontmerge "'userGroupProvider'" \
+             ${merge} ${in_a}
+    rm -f ${in_a} ${in_b}
+
+    in_a=${out}
+    in_b=${prefix}-composite-configurable.xml
+    out=${prefix}-2.xml
+    xsltproc -o ${out} \
+             --param with "'${in_b}'" \
+             --param dontmerge "'userGroupProvider'" \
+             ${merge} ${in_a}
+    rm -f ${in_a} ${in_b}
+
+    in_a=${out}
     in_b=${prefix}-safety-valve.xml
     out=${prefix}.xml
     xsltproc -o ${out} \
@@ -301,7 +294,7 @@ create_authorizers_xml() {
     # Merge with Access Policy Providers
     prefix=authorizers-access-policy-provider
     in_a=${out}
-    in_b=${prefix}-with-nodes.xml
+    in_b=${prefix}-file.xml
     out=${prefix}-1.xml
     xsltproc -o ${out} \
              --param with "'${in_b}'" \
@@ -326,7 +319,7 @@ create_authorizers_xml() {
              --param with "'${in_b}'" \
              ${merge} ${in_a}
     rm -f ${in_a} ${in_b}
- 
+
     in_a=${out}
     in_b=${prefix}-safety-valve.xml
     out=authorizers-with-initial.xml
@@ -344,6 +337,10 @@ create_authorizers_xml() {
       xmllint --format $in_a > $out
     fi
     rm -f ${in_a}
+
+    sed -i \
+        -e "s|@@CONF_DIR@@|${CONF_DIR}|g" \
+        $out
 }
 
 create_state_management_xml() {
@@ -378,6 +375,90 @@ create_state_management_xml() {
         $out
 }
 
+guid() {
+    local bits=$(echo "${1}#${NIFI_SEED}" | md5sum | cut -d' ' -f 1)
+    echo ${bits:0:8}-${bits:8:4}-${bits:12:4}-${bits:16:4}-${bits:20}
+}
+
+create_cmf_tenants_nodes_hadoop_xml() {
+    local prefix=$1
+    local out=${prefix}-users.hadoop.xml
+    local dnPrefix=$(cat tls-conf/tls.json | ${CDH_NIFI_JQ} -r .dnPrefix)
+    local dnSuffix=$(cat tls-conf/tls.json | ${CDH_NIFI_JQ} -r .dnSuffix)
+
+    echo '<?xml version="1.0" encoding="UTF-8"?>' > $out
+    echo '<configuration>' >> $out
+    echo '  <property>' >> $out
+    echo '    <name>cdh.tenants.type</name>' >> $out
+    echo '    <value>users</value>' >> $out
+    echo '  </property>' >> $out
+
+    local CMF_NODES_USER_GUIDS=()
+    for i in $(grep nifi.cluster.node.protocol.port nifi-nodes.properties|sort|uniq); do
+      local node_name=$(echo $i | cut -d':' -f 1)
+      local node_guid=$(guid $i)
+      CMF_NODES_USER_GUIDS+=($node_guid)
+      echo '  <property>' >> $out
+      echo "    <name>${node_guid}</name>" >> $out
+      echo "    <value>${dnPrefix}${node_name}${dnSuffix}</value>" >> $out
+      echo '  </property>' >> $out
+    done
+
+    local CMF_ADMINS_USER_GUIDS=()
+    OLD_IFS=$IFS
+    IFS='^'
+    identities=(${nifi_admin_principal})
+    identities+=(${NIFI_CMF_ADMINS})
+    for i in "${identities[@]}"; do
+      local identifier=$(guid "$i")
+      CMF_ADMINS_USER_GUIDS+=($identifier)
+      echo '  <property>' >> $out
+      echo "    <name>${identifier}</name>" >> $out
+      echo "    <value>${i}</value>" >> $out
+      echo '  </property>' >> $out
+    done
+    IFS=$OLD_IFS
+
+    echo '</configuration>' >> $out
+
+    sed -i \
+        -e "s|@@CMF_NODES_USER_GUIDS@@|$(echo ${CMF_NODES_USER_GUIDS[*]})|" \
+        -e "s|@@NIFI_ADMIN_GUID@@|$(echo ${CMF_ADMINS_USER_GUIDS[*]})|" \
+        ${prefix}-groups-safety-valve.hadoop.xml
+}
+
+create_cmf_tenants_xml() {
+    local prefix=cmf-tenants
+
+    create_cmf_tenants_nodes_hadoop_xml ${prefix}
+
+    close_prefix_safety_valve_xml ${prefix}-groups "groups"
+    close_prefix_safety_valve_xml ${prefix} "tenants"
+
+    convert_prefix_hadoop_xml ${prefix}
+
+    # Merge users and groups
+    merge=${CDH_NIFI_XSLT}/merge.xslt
+    in_a=${prefix}-groups-safety-valve.xml
+    in_b=${prefix}-users.xml
+    out=${prefix}-1.xml
+    xsltproc -o ${out} \
+             --param with "'${in_b}'" \
+             ${merge} ${in_a}
+    rm -f ${in_a} ${in_b}
+
+    in_a=${out}
+    out=${prefix}.xml
+    xmllint --format ${in_a} > ${out}
+    rm -f ${in_a}
+
+    sed -i \
+        -e "s|@@CMF_ADMINS_GUID@@|$(guid cmf-admins)|" \
+        -e "s|@@CMF_NODES_GUID@@|$(guid cmf-nodes)|" \
+        -e "s|@@NIFI_ADMIN_GUID@@|$(guid ${nifi_admin_principal})|" \
+        $out
+}
+
 update_nifi_properties() {
     local num_of_nodes=$(cut -d ':' -f 1 nifi-nodes.properties | sort | uniq | wc -l)
     local principal=$(echo ${nifi_principal} | cut -d '/' -f 1)
@@ -386,7 +467,7 @@ update_nifi_properties() {
         -e "s|@@CDH_NIFI_HOME@@|${CDH_NIFI_HOME}|g" \
         -e "s|@@ZK_QUORUM@@|${ZK_QUORUM}|g" \
         -e "s|@@ZK_ROOT@@|/${principal}|g" \
-        -e "s|@@NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES@@|${num_of_nodes}|g" \
+        -e "s|@@NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES@@|$(let ($num_of_nodes + 1)/2)|g" \
         nifi.properties
 
     if [ $NIFI_SSL_ENABLED == "true" ]; then

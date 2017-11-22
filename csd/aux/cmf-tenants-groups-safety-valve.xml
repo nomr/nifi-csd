@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<configuration>
+  <property>
+    <name>cdh.tenants.type</name>
+    <value>groups</value>
+  </property>
+  <property>
+    <name>@@CMF_NODES_GUID@@</name>
+    <value>cmf-nodes</value>
+    <description>@@CMF_NODES_USER_GUIDS@@</description>
+  </property>
+  <property>
+    <name>@@CMF_ADMINS_GUID@@</name>
+    <value>cmf-admins</value>
+    <description>@@NIFI_ADMIN_GUID@@</description>
+  </property>
