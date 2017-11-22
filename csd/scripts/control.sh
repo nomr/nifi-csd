@@ -331,11 +331,7 @@ create_authorizers_xml() {
 
     in_a=${out}
     out=authorizers.xml
-    if [ $NIFI_JOIN_CLUSTER == 'true' ]; then
-      xmllint --format $in_a | grep -v -E '(Initial (User|Admin)|Node) Identity' > $out
-    else
-      xmllint --format $in_a > $out
-    fi
+    xmllint --format $in_a > $out
     rm -f ${in_a}
 
     sed -i \
@@ -467,7 +463,7 @@ update_nifi_properties() {
         -e "s|@@CDH_NIFI_HOME@@|${CDH_NIFI_HOME}|g" \
         -e "s|@@ZK_QUORUM@@|${ZK_QUORUM}|g" \
         -e "s|@@ZK_ROOT@@|/${principal}|g" \
-        -e "s|@@NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES@@|$(let ($num_of_nodes + 1)/2)|g" \
+        -e "s|@@NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES@@|$(( ($num_of_nodes + 1)/2 ))|g" \
         nifi.properties
 
     if [ $NIFI_SSL_ENABLED == "true" ]; then
@@ -524,5 +520,6 @@ case "$1" in
         ;;
     *)
         echo "Usage control.sh {nifi-run|nifi-stop}"
+        exit 1
         ;;
 esac

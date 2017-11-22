@@ -29,16 +29,6 @@ serviceDependencies:
 - name: NIFI_TLS
   required: 'true'
 
-rolesWithExternalLinks: [NIFI_SERVER]
-
-kerberos: true
-
-serviceInit:
-  preStartSteps:
-    - commandName: server_remove_ssl
-    - commandName: server_remove_state
-    - commandName: server_deploy_authorizations
-
 commands:
 - name: server_remove_ssl
   label: Remove TLS files
@@ -59,6 +49,15 @@ commands:
   roleName: NIFI_SERVER
   runMode: "all"
 
+serviceInit:
+  preStartSteps:
+    - commandName: server_remove_ssl
+    - commandName: server_remove_state
+    - commandName: server_deploy_authorizations
+
+rolesWithExternalLinks: [NIFI_SERVER]
+
+kerberos: true
 
 
 parameters:
@@ -106,7 +105,6 @@ roles:
       NIFI_PID_DIR: '${nifi_home}'
       NIFI_SSL_ENABLED: '${ssl_enabled}'
       NIFI_SEED: '${nifi_sensitive_props_key}'
-      NIFI_JOIN_CLUSTER: '${authorizers_join_existing_cluster}'
       NIFI_CMF_ADMINS: '${cmf_admins}'
 
 #  stopRunner:
@@ -143,6 +141,7 @@ roles:
     label: Deploy Cloudera's Default Authorizations
     description: Deploy's Cloudera's Default Authorizations
     expectedExitCodes: [0]
+    requiredRoleState: stopped
     commandRunner:
       program: scripts/control.sh
       args: [nifi-reset, cloudera_authorizations]
@@ -243,18 +242,11 @@ roles:
     configName: cmf_admins
     label: NiFi Administrator Identities
     description: Identities that will be granted Admin access to NiFi.
-    required: false
-    type: string_array
-    separator: '^'
-
-  - name: authorizers_join_existing_cluster
-    label: Join an existing cluster
-    description: If this node is joining an existing cluster then Initial Admin Identity,
-      Initial User, and Node Identity are not added to authorizers.xml
     required: true
     configurableInWizard: true
-    type: boolean
-    default: true
+    type: string_array
+    separator: '^'
+    minLength: 1
 
   - name: authorizers_access_policy_file_user_group_provider
     label: Authorizers File Access Policy Provider User Group Provider
