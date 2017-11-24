@@ -61,16 +61,22 @@ commands:
   roleName: NIFI_SERVER
   runMode: "single"
 
-
-
 serviceInit:
   preStartSteps:
     - commandName: server_deploy_authorizations
 
-rolesWithExternalLinks: [NIFI_SERVER]
+rollingRestart:
+  workerSteps:
+    roleName: NIFI_SERVER
+    bringDownCommands:
+    - Stop
+    bringUpCommands:
+    - Start
+
+rolesWithExternalLinks:
+- NIFI_SERVER
 
 kerberos: true
-
 
 parameters:
 - name: java_home
