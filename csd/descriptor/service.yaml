@@ -30,6 +30,12 @@ serviceDependencies:
   required: 'true'
 
 commands:
+- name: server_test_zookeeper
+  label: Test Zookeeper Connection
+  description: Tests if the node can work with Zookeeper
+  roleCommand: server_test_zookeeper
+  roleName: NIFI_SERVER
+  runMode: all
 - name: server_deploy_authorizations
   label: Regenerate Authorizations
   description: Deploys the initial authorizations file
@@ -125,6 +131,16 @@ roles:
 #      NIFI_SSL_ENABLED: '${ssl_enabled}'
 
   commands:
+  - name: server_test_zookeeper
+    label: Test Zookeeper Connection
+    description: Tests if the node can work with Zookeeper
+    expectedExitCodes: [0]
+    requiredRoleState: stopped
+    commandRunner:
+      program: scripts/control.sh
+      args: [nifi-reset, zk-canary]
+      environmentVariables: *environment_variables
+
   - name: server_deploy_authorizations
     label: Regenerate default authorizations
     description: Deploys the default authorizations file
@@ -1250,6 +1266,16 @@ roles:
       configFormat: properties
       includedParams: []
       additionalConfigs:
+      - key: zk-canary
+        value: '
+          export CLIENT_JVMFLAGS=-Djava.security.auth.login.config=jaas.conf;
+          export PRINCIPAL=$(cut -d/ -f 1 <<< $nifi_principal);
+          export ZK_ROOT=/$PRINCIPAL;
+          zookeeper-client -server $ZK_QUORUM create $ZK_ROOT/canary hello sasl:$PRINCIPAL:cdrwa;
+          zookeeper-client -server $ZK_QUORUM getAcl $ZK_ROOT/canary;
+          zookeeper-client -server $ZK_QUORUM get $ZK_ROOT/canary;
+          zookeeper-client -server $ZK_QUORUM delete $ZK_ROOT/canary;
+         '
       - key: ssl
         value: 'rm -f ${ssl_server_keystore_location} ${ssl_client_truststore_location}'
       - key: state
