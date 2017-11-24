@@ -43,11 +43,19 @@ commands:
   roleName: NIFI_SERVER
   runMode: "all"
 - name: server_remove_state
-  label: Remove State and Repositories
+  label: Remove Local State and Repositories
   description: Deletes authorizations.xml, users.xml and flow.xml.gz files
   roleCommand: server_remove_state
   roleName: NIFI_SERVER
   runMode: "all"
+- name: server_remove_zookeeper
+  label: Remove Global State
+  description: Deletes Zookeeper root node
+  roleCommand: server_remove_zookeeper
+  roleName: NIFI_SERVER
+  runMode: "single"
+
+
 
 serviceInit:
   preStartSteps:
@@ -117,6 +125,15 @@ roles:
 #      NIFI_SSL_ENABLED: '${ssl_enabled}'
 
   commands:
+  - name: server_deploy_authorizations
+    label: Regenerate default authorizations
+    description: Deploys the default authorizations file
+    expectedExitCodes: [0]
+    requiredRoleState: stopped
+    commandRunner:
+      program: scripts/control.sh
+      args: [nifi-reset, cloudera_authorizations]
+      environmentVariables: *environment_variables
   - name: server_remove_ssl
     label: Regenerate TLS Certificates
     description: Renews the KeyStore and TrustStore files on stopped nodes.
@@ -135,14 +152,14 @@ roles:
       program: scripts/control.sh
       args: [nifi-reset, state]
       environmentVariables: *environment_variables
-  - name: server_deploy_authorizations
-    label: Regenerate default authorizations
-    description: Deploys the default authorizations file
+  - name: server_remove_zookeeper
+    label: Remove Global State
+    description: Deletes Zookeeper root node
     expectedExitCodes: [0]
     requiredRoleState: stopped
     commandRunner:
       program: scripts/control.sh
-      args: [nifi-reset, cloudera_authorizations]
+      args: [nifi-reset, zookeeper]
       environmentVariables: *environment_variables
 
   topology:
@@ -1240,15 +1257,20 @@ roles:
           IFS=: read -ra array <<< ${nifi_provenance_repository_directory}:${nifi_content_repository_directory};
           for i in $array; do rm -rf $i/*; done;
           rm -rf
-          ${nifi_home}/archive
-          ${nifi_home}/work
-          ${nifi_home}/authorizations.xml
-          ${nifi_home}/flow.xml.gz
-          ${nifi_home}/users.xml
-          ${nifi_flowfile_repository_directory}/*
-          ${nifi_database_directory}/*
-          ${state_management_local_provider_directory}/*
+            ${nifi_home}/archive
+            ${nifi_home}/work
+            ${nifi_home}/authorizations.xml
+            ${nifi_home}/flow.xml.gz
+            ${nifi_home}/users.xml
+            ${nifi_flowfile_repository_directory}/*
+            ${nifi_database_directory}/*
+            ${state_management_local_provider_directory}/*
           '
+      - key: zookeeper
+        value: '
+          CLIENT_JVMFLAGS=-Djava.security.auth.login.config=jaas.conf
+          zookeeper-client -server $ZK_QUORUM rmr /$(cut -d/ -f 1 <<< $nifi_principal)
+        '
       - key: cloudera_authorizations
         value: cp -f authorizations.xml ${nifi_home}/authorizations.xml
 
