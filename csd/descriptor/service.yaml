@@ -693,13 +693,15 @@ roles:
     required: false
     type: port
     min: 1
-  - name: nifi_web_http_network_interface_default
-    configName: nifi.web.http.network.interface.default
-    description: 'The name of the network interface to which NiFi should bind for
-      HTTP requests.'
+  - name: nifi_web_http_network_interface
+    configName: nifi.web.http.network.interface.colon_array
+    description: 'The name of the network interface(s) to which NiFi should bind for
+      HTTP(or HTTPs) requests.'
     label: HTTP(or HTTPs) Default Network Interface
     required: false
-    type: string
+    type: string_array
+    separator: ':'
+    minLength: 0
 
   - {configName: nifi.web.jetty.threads, default: 200, description: The number of
       Jetty threads., label: HTTP(S) Number of Threads, min: 1, name: nifi_web_jetty_threads,
@@ -1048,7 +1050,7 @@ roles:
 
         nifi_remote_input_socket_port, nifi_remote_input_http_enabled,
 
-        nifi_web_http_port, nifi_web_http_port_forwarding, nifi_web_http_network_interface_default,
+        nifi_web_http_port, nifi_web_http_port_forwarding, nifi_web_http_network_interface,
 
         nifi_web_jetty_threads,
         nifi_sensitive_props_key,
