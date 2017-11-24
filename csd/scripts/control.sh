@@ -76,7 +76,8 @@ locate_java8_home() {
 get_property() {
     local file=$1
     local key=$2
-    grep "$key=" ${file}.properties | tail -1 | cut -d '=' -f 2
+    local line=$(grep "$key=" ${file}.properties | tail -1)
+    echo "${line/$key=/}"
 }
 
 #TODO: replace with sed
@@ -401,10 +402,8 @@ create_cmf_tenants_nodes_hadoop_xml() {
     done
 
     local CMF_ADMINS_USER_GUIDS=()
-    OLD_IFS=$IFS
-    IFS='^'
-    identities=(${nifi_admin_principal})
-    identities+=(${NIFI_CMF_ADMINS})
+    IFS='^' read -ra identities <<< ${NIFI_CMF_ADMINS}
+    identities+=(${nifi_admin_principal})
     for i in "${identities[@]}"; do
       local identifier=$(guid "$i")
       CMF_ADMINS_USER_GUIDS+=($identifier)
@@ -413,7 +412,6 @@ create_cmf_tenants_nodes_hadoop_xml() {
       echo "    <value>${i}</value>" >> $out
       echo '  </property>' >> $out
     done
-    IFS=$OLD_IFS
 
     echo '</configuration>' >> $out
 
@@ -455,9 +453,37 @@ create_cmf_tenants_xml() {
         $out
 }
 
+explode_arrays() {
+    local input=$1
+
+    array_type=colon_array
+    for i in $(grep "\.${array_type}=" ${input}.properties); do
+        key_prefix=${i/${array_type}=*/}
+        value=${i/*${array_type}=/}
+        exploded=$(explode_array $key_prefix $value)
+        for item in $exploded; do
+          sed -i -e "/${key_prefix}${array_type}=/a${item}" ${input}.properties
+        done
+        sed -i -e "/${key_prefix}${array_type}=/d" ${input}.properties
+    done
+}
+
+explode_array() {
+    local key_prefix=$1
+    local value=$2
+
+    IFS=':' read -ra array <<< $value
+    for (( i=0; i<${#array[@]}; i++)); do
+      echo $1$i=${array[$i]}
+    done
+}
+
+
 update_nifi_properties() {
     local num_of_nodes=$(cut -d ':' -f 1 nifi-nodes.properties | sort | uniq | wc -l)
     local principal=$(echo ${nifi_principal} | cut -d '/' -f 1)
+
+    explode_arrays nifi
 
     sed -i \
         -e "s|@@CDH_NIFI_HOME@@|${CDH_NIFI_HOME}|g" \
@@ -506,7 +532,7 @@ nifi_start() {
 
 nifi_reset() {
     cmd=$(get_property nifi-reset $1)
-    exec $cmd
+    exec sh -c "$cmd"
 }
 
 case "$1" in

@@ -30,29 +30,27 @@ serviceDependencies:
   required: 'true'
 
 commands:
+- name: server_deploy_authorizations
+  label: Regenerate Authorizations
+  description: Deploys the initial authorizations file
+  roleCommand: server_deploy_authorizations
+  roleName: NIFI_SERVER
+  runMode: "all"
 - name: server_remove_ssl
-  label: Remove TLS files
-  description: Removes TLS NiFi files (keystore and truststore)
+  label: Regenerate TLS Certificates
+  description: Renews the KeyStore and TrustStore files
   roleCommand: server_remove_ssl
   roleName: NIFI_SERVER
   runMode: "all"
 - name: server_remove_state
-  label: Remove NiFi Auth Users & Flow
-  description: Removes NiFi authorizations.xml, users.xml and flow.xml.gz files
+  label: Remove State and Repositories
+  description: Deletes authorizations.xml, users.xml and flow.xml.gz files
   roleCommand: server_remove_state
-  roleName: NIFI_SERVER
-  runMode: "all"
-- name: server_deploy_authorizations
-  label: Deploy Cloudera's Default Authorizations
-  description: Deploy's Cloudera's Default Authorizations
-  roleCommand: server_deploy_authorizations
   roleName: NIFI_SERVER
   runMode: "all"
 
 serviceInit:
   preStartSteps:
-    - commandName: server_remove_ssl
-    - commandName: server_remove_state
     - commandName: server_deploy_authorizations
 
 rolesWithExternalLinks: [NIFI_SERVER]
@@ -120,8 +118,8 @@ roles:
 
   commands:
   - name: server_remove_ssl
-    label: Remove TLS Files
-    description: Removes the keystore and truststore files on stopped nodes
+    label: Regenerate TLS Certificates
+    description: Renews the KeyStore and TrustStore files on stopped nodes.
     expectedExitCodes: [0]
     requiredRoleState: stopped
     commandRunner:
@@ -129,8 +127,8 @@ roles:
       args: [nifi-reset, ssl]
       environmentVariables: *environment_variables
   - name: server_remove_state
-    label: Reset NiFi State
-    description: Removes NiFi state files on stopped nodes.
+    label: Reset NiFi State Files and Repositories
+    description: Removes NiFi state on stopped nodes.
     expectedExitCodes: [0]
     requiredRoleState: stopped
     commandRunner:
@@ -138,8 +136,8 @@ roles:
       args: [nifi-reset, state]
       environmentVariables: *environment_variables
   - name: server_deploy_authorizations
-    label: Deploy Cloudera's Default Authorizations
-    description: Deploy's Cloudera's Default Authorizations
+    label: Regenerate default authorizations
+    description: Deploys the default authorizations file
     expectedExitCodes: [0]
     requiredRoleState: stopped
     commandRunner:
@@ -431,16 +429,20 @@ roles:
       maximum number of FlowFiles to assign to one content claim., label: Content
       Repository Maximum FlowFiles per Content Claim, min: 1, name: nifi_content_claim_max_flow_files,
     required: true, type: long}
-  - {configName: nifi.content.repository.directory.default, conformRegex: /.*, default: /data/nifi/content,
-    description: 'The location of the Content Repository. NOTE: Multiple content repositories
-      can be specified by using the nifi.content.repository.directory. prefix with
-      unique suffixes and separate paths as values in safety-valve. For example, to
-      provide two additional locations to act as part of the content repository, a
-      user could also specify additional properties with keys of: nifi.content.repository.directory.content1=/repos/content1
-      nifi.content.repository.directory.content2=/repos/content2 Providing three total
-      locations, including nifi.content.repository.directory.default.', label: Content
-      Repository Default Directory, mode: '0750', name: nifi_content_repository_directory_default,
-    pathType: localDataDir, required: true, type: path}
+  - name: nifi_content_repository_directory
+    configName: nifi.content.repository.directory.colon_array
+    label: Content Repository Default Directory
+    description: The location(s) of the Content Repository.
+    required: true
+    configurableInWizard: true
+    type: path_array
+    pathType: localDataDir
+    conformRegex: /.*
+    mode: '0750'
+    separator: ':'
+    minLength: 1
+    default:
+    - /data/nifi/content
   - {configName: nifi.content.repository.archive.max.retention.period, default: 12,
     description: 'If archiving is enabled, then this property specifies the maximum
       amount of time to keep the archived data.', label: Content Repository Archive
@@ -479,16 +481,20 @@ roles:
     type: string_enum
     validValues: [org.apache.nifi.provenance.WriteAheadProvenanceRepository]
     default: org.apache.nifi.provenance.WriteAheadProvenanceRepository
-  - {configName: nifi.provenance.repository.directory.default, conformRegex: /.*,
-    default: /data/nifi/provenance, description: 'The location of the Provenance Repository.
-      NOTE: Multiple provenance repositories can be specified by using the nifi.provenance.repository.directory.
-      prefix with unique suffixes and separate paths as values using safety-valve.  For
-      example, to provide two additional locations to act as part of the provenance
-      repository, a user could also specify additional properties with keys of: nifi.provenance.repository.directory.provenance1=/repos/provenance1
-      nifi.provenance.repository.directory.provenance2=/repos/provenance2 Providing
-      three total locations, including nifi.provenance.repository.directory.default.',
-    label: Provenance Repository Default Directory, mode: '0750', name: nifi_provenance_repository_directory_default,
-    pathType: localDataDir, required: true, type: path}
+  - name: nifi_provenance_repository_directory
+    configName: nifi.provenance.repository.directory.colon_array
+    label: Provenance Repository Default Directory
+    description: The location of the Provenance Repository.
+    required: true
+    configurableInWizard: true
+    type: path_array
+    pathType: localDataDir
+    conformRegex: /.*
+    mode: '0750'
+    separator: ':'
+    minLength: 1
+    default:
+    - /data/nifi/provenance
   - {configName: nifi.provenance.repository.max.storage.time, default: 24, description: The
       maximum amount of time to keep data provenance information., label: Provenance
       Repository Max Storage Time, min: 1, name: nifi_provenance_repository_max_storage_time,
@@ -1017,15 +1023,27 @@ roles:
 
         nifi_flowfile_repository_implementation, nifi_flowfile_repository_directory,
         nifi_flowfile_repository_partitions, nifi_flowfile_repository_always_sync,
-        nifi_swap_queue_threshold, nifi_swap_in_threads, nifi_swap_out_threads, nifi_content_repository_implementation,
-        nifi_content_claim_max_flow_files, nifi_content_repository_directory_default,
-        nifi_content_repository_archive_enabled, nifi_content_repository_always_sync,
-        nifi_content_viewer_url, nifi_provenance_repository_implementation, nifi_provenance_repository_directory_default,
-        nifi_provenance_repository_query_threads, nifi_provenance_repository_index_threads,
-        nifi_provenance_repository_compress_on_rollover, nifi_provenance_repository_always_sync,
-        nifi_provenance_repository_journal_count, nifi_provenance_repository_indexed_fields,
-        nifi_provenance_repository_indexed_attributes, nifi_provenance_repository_max_attribute_length,
-        nifi_provenance_repository_concurrent_merge_threads, nifi_provenance_repository_buffer_size,
+        nifi_swap_queue_threshold, nifi_swap_in_threads, nifi_swap_out_threads,
+
+        nifi_content_repository_implementation,
+        nifi_content_claim_max_flow_files,
+        nifi_content_repository_directory,
+        nifi_content_repository_archive_enabled,
+        nifi_content_repository_always_sync,
+        nifi_content_viewer_url,
+
+        nifi_provenance_repository_implementation,
+        nifi_provenance_repository_directory,
+        nifi_provenance_repository_query_threads,
+        nifi_provenance_repository_index_threads,
+        nifi_provenance_repository_compress_on_rollover,
+        nifi_provenance_repository_always_sync,
+        nifi_provenance_repository_journal_count,
+        nifi_provenance_repository_indexed_fields,
+        nifi_provenance_repository_indexed_attributes,
+        nifi_provenance_repository_max_attribute_length,
+        nifi_provenance_repository_concurrent_merge_threads,
+        nifi_provenance_repository_buffer_size,
         nifi_components_status_repository_buffer_size,
 
         nifi_remote_input_socket_port, nifi_remote_input_http_enabled,
@@ -1200,21 +1218,24 @@ roles:
 
     - filename: nifi-reset.properties
       configFormat: properties
+      includedParams: []
       additionalConfigs:
       - key: ssl
         value: 'rm -f ${ssl_server_keystore_location} ${ssl_client_truststore_location}'
       - key: state
-        value: rm -rf
+        value: '
+          IFS=: read -ra array <<< ${nifi_provenance_repository_directory}:${nifi_content_repository_directory};
+          for i in $array; do rm -rf $i/*; done;
+          rm -rf
           ${nifi_home}/archive
           ${nifi_home}/work
           ${nifi_home}/authorizations.xml
           ${nifi_home}/flow.xml.gz
           ${nifi_home}/users.xml
-          ${nifi_content_repository_directory_default}/*
+          ${nifi_flowfile_repository_directory}/*
           ${nifi_database_directory}/*
-          ${nifi_flow_configuration_archive_enabled}/*
-          ${nifi_provenance_repository_directory_default}/*
           ${state_management_local_provider_directory}/*
+          '
       - key: cloudera_authorizations
         value: cp -f authorizations.xml ${nifi_home}/authorizations.xml
 
