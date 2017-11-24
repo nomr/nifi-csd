@@ -323,6 +323,15 @@ roles:
   - {default: 30, description: The interval at which the User Interface auto-refreshes.,
     label: UI Autorefresh Interval, min: 1, name: nifi_ui_autorefresh_interval, required: true,
     type: long, unit: seconds}
+  - name: nifi_nar_library_directory
+    configName: nifi.nar.library.directory.colon_array
+    label: Additional NAR library directories
+    description: Additional directories with custom NAR files.
+    required: false
+    type: path_array
+    pathType: serviceSpecific
+    conformRegex: /.*
+    separator: ':'
 
   - name: nifi_database_directory
     configName: nifi.database.directory
@@ -1018,8 +1027,10 @@ roles:
       - principalName: nifi_spnego_principal
         propertyName: nifi.kerberos.spnego.principal
 
-      includedParams: [nifi_flow_configuration_archive_enabled, nifi_flow_configuration_archive_max_count,
+      includedParams: [
+        nifi_flow_configuration_archive_enabled, nifi_flow_configuration_archive_max_count,
         nifi_flowcontroller_auto_resume_state, nifi_ui_banner_text,
+        nifi_nar_library_directory,
 
         nifi_database_directory,
 
