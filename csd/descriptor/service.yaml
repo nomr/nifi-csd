@@ -426,10 +426,17 @@ roles:
     - org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
     - org.apache.nifi.controller.repository.VolatileFlowFileRepository
     default: org.apache.nifi.controller.repository.WriteAheadFlowFileRepository
-  - {configName: nifi.flowfile.repository.directory, conformRegex: /.*, default: /data/nifi/flowfile,
-    description: The location of the FlowFile Repository., label: FlowFile Respository
-      Directory, mode: '0750', name: nifi_flowfile_repository_directory, pathType: localDataDir,
-    required: true, type: path}
+  - name: nifi_flowfile_repository_directory
+    configName: nifi.flowfile.repository.directory
+    label: FlowFile Respository Directory
+    description: The location of the FlowFile Repository.
+    required: true
+    configurableInWizard: true
+    type: path
+    pathType: localDataDir
+    mode: '0750'
+    conformRegex: /.*
+    default: /data/nifi/flowfile
   - {configName: nifi.flowfile.repository.partitions, default: 256, description: The
       number of partitions, label: FlowFile Respository Number of Partitions, min: 1,
     name: nifi_flowfile_repository_partitions, type: long}
@@ -909,10 +916,17 @@ roles:
     default: Open
 
 
-  - {configName: Directory, configurableInWizard: true, conformRegex: /.*, default: /data/nifi/state/local,
-    description: The directory to store components' state in., label: State Management
-      Local Provider Directory, mode: '0750', name: state_management_local_provider_directory,
-    pathType: localDataDir, required: true, type: path}
+  - name: state_management_local_provider_directory
+    configName: Directory
+    label: State Management Local Provider Directory
+    description: The directory to store components' state in.
+    required: true
+    configurableInWizard: true
+    type: path
+    pathType: localDataDir
+    mode: '0750'
+    conformRegex: /.*
+    default: /data/nifi/state/local
   - {configName: Always Sync, default: 'false', description: 'Always Sync - If set
       to true, any change to the repository will be synchronized to the disk, meaning
       that NiFi will ask the operating system not to cache the information. This is
