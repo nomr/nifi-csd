@@ -421,6 +421,7 @@ update_nifi_properties() {
     explode_arrays nifi
 
     sed -i \
+        -e "s|@@CONF_DIR@@|${CONF_DIR}|g" \
         -e "s|@@CDH_NIFI_HOME@@|${CDH_NIFI_HOME}|g" \
         -e "s|@@ZK_QUORUM@@|${ZK_QUORUM}|g" \
         -e "s|@@ZK_ROOT@@|/${principal}|g" \

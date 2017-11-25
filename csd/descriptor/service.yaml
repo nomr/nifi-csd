@@ -43,13 +43,6 @@ commands:
   roleCommand: node_deploy_authorizations
   roleName: NIFI_SERVER
   runMode: "all"
-- name: service_remove_ssl
-  label: Renew TLS Certificates (next start)
-  description: Will delete the keystore and truststore so they are regenerated
-      in the next restart.
-  roleCommand: node_remove_ssl
-  roleName: NIFI_SERVER
-  runMode: "all"
 - name: server_remove_state
   label: Remove Local State and Repositories
   description: Deletes authorizations.xml, users.xml and flow.xml.gz files
@@ -65,7 +58,7 @@ commands:
 
 serviceInit:
   preStartSteps:
-    - commandName: service_remove_ssl
+    - commandName: server_deploy_authorizations
 
 rollingRestart:
   workerSteps:
@@ -150,20 +143,6 @@ roles:
       args:
       - deploy
       - ${nifi_home}/authorizations.xml
-  - name: node_remove_ssl
-    label: Renew TLS Certificates (next start)
-    description: Will delete the keystore and truststore so they are regenerated
-      in the next restart.
-    expectedExitCodes: [0]
-    requiredRoleState: stopped
-    commandRunner:
-      environmentVariables: *environment_variables
-      program: scripts/exec.sh
-      args:
-      - 'rm'
-      - '-rf'
-      - '${nifi_home}/truststore.jks'
-      - '${nifi_home}/keystore.jks'
   - name: server_remove_state
     label: Reset NiFi State Files and Repositories
     description: Removes NiFi state on stopped nodes.
@@ -1237,10 +1216,10 @@ roles:
       - {key: nifi.sensitive.props.provider, value: BC}
       - {key: nifi.security.keystoreType, value: JKS}
       - key: nifi.security.keystore
-        value: ${nifi_home}/keystore.jks
+        value: '@@CONF_DIR@@/keystore.jks'
       - {key: nifi.security.truststoreType, value: JKS}
       - key: nifi.security.truststore
-        value: ${nifi_home}/truststore.jks
+        value: '@@CONF_DIR@@/truststore.jks'
       - {key: nifi.security.needClientAuth, value: '${ssl_enabled}'}
 
       - key: nifi.cluster.node.address
@@ -1313,10 +1292,10 @@ roles:
       configFormat: hadoop_xml
       includedParams: []
       additionalConfigs:
-      - {key: keyStore, value: '${nifi_home}/keystore.jks'}
+      - {key: keyStore, value: 'keystore.jks'}
       - {key: keyStorePassword, value: '${ssl_server_keystore_password}'}
       - {key: keyPassword, value: '${ssl_server_keystore_keypassword}'}
-      - {key: trustStore, value: '${nifi_home}/truststore.jks'}
+      - {key: trustStore, value: 'truststore.jks'}
       - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
 
     - filename: nifi-reset.properties
