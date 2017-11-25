@@ -42,3 +42,17 @@ close_prefix_safety_valve_xml() {
     done
 }
 
+convert_prefix_hadoop_xml() {
+    local prefix=$1
+    local xslt=${2:-aux/${prefix}.xslt}
+
+    local basename=$(basename $prefix)
+    local dirname=$(dirname $prefix)
+
+    for h_xml in `find ${dirname} -type f -name "${basename}-*.hadoop[_,.]xml"`; do
+        xsltproc -o ${h_xml//hadoop[_.]xml/xml} ${xslt} ${h_xml}
+        rm -f ${h_xml}
+    done
+}
+
+
