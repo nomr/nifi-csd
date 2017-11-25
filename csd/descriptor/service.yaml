@@ -377,6 +377,7 @@ roles:
     label: H2 Database Directory
     description: The path to the database directory
     required: true
+    configurableInWizard: true
     type: path
     pathType: localDataDir
     conformRegex: /.*
