@@ -89,17 +89,6 @@ parameters:
   pathType: serviceSpecific
   default: /usr/java/jdk1.8.0_121
 
-- name: nifi_home
-  configName: nifi.home
-  label: NiFi Home directory
-  description: NiFi's service instance home directory
-  required: true
-  configurableInWizard: true
-  type: path
-  pathType: localDataDir
-  mode: '0750'
-  default: /var/lib/nifi
-
 roles:
 - name: NIFI_SERVER
   label: Node
@@ -275,6 +264,17 @@ roles:
 
 
   parameters:
+  - name: nifi_home
+    configName: nifi.home
+    label: NiFi Home directory
+    description: NiFi's service instance home directory
+    required: true
+    configurableInWizard: true
+    type: path
+    pathType: localDataDir
+    mode: '0750'
+    default: /data/nifi/home
+
   - name: cmf_admins
     configName: cmf_admins
     label: NiFi Administrator Identities
