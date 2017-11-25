@@ -22,6 +22,11 @@ set -efu -o pipefail
 NIFI_COMMON_SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/common.sh"
 . ${NIFI_COMMON_SCRIPT}
 
+NIFI_TLS_ENABLED=false
+if [ -e tls-conf/client.sh ]; then
+  . tls-conf/client.sh
+fi
+
 unlimitFD() {
     # Use the maximum available, or set MAX_FD != -1 to use that
     MAX_FD=${MAX_FD:="maximum"}
@@ -81,47 +86,6 @@ insert_if_not_exists() {
     fi
 }
 
-tls_client_init() {
-    prefix=tls-conf/tls
-
-    convert_prefix_hadoop_xml ${prefix} ${CDH_NIFI_XSLT}/hadoop2element-value.xslt
-
-    caHostname=`grep port ${prefix}-service.properties | head -1 | cut -f 1 -d ':'`
-    caPort=`grep port ${prefix}-service.properties | head -1 | cut -f 2 -d '='`
-
-    sed -i "s/@@HOSTNAME@@/$(hostname -f)/" ${prefix}-service.xml
-    sed -i "s/@@CA_HOSTNAME@@/${caHostname}/" ${prefix}-service.xml
-    sed -i "s/@@CA_PORT@@/${caPort}/" ${prefix}-service.xml
-
-    # Merge TLS configuration
-    merge=${CDH_NIFI_XSLT}/merge.xslt
-    in_a=${prefix}-client.xml
-    in_b=$(basename ${prefix}-service.xml) # relative paths only
-    out=${prefix}.xml
-    xsltproc -o ${out} \
-             --param with "'${in_b}'" \
-             ${merge} ${in_a}
-    rm -f ${in_a} ${in_b}
-
-
-    xsltproc ${CDH_NIFI_XSLT}/xml2json.xslt $out | ${CDH_NIFI_JQ} '
-      .configuration |
-      .port=(.port| tonumber) |
-      .days=(.days | tonumber) |
-      .keySize=(.keySize | tonumber) |
-      .reorderDn=(.reorderDn == "true")' > ${prefix}.json
-
-    CLASSPATH=".:${CDH_NIFI_TOOLKIT_HOME}/lib/*"
-
-    "${JAVA}" -cp "${CLASSPATH}" \
-                ${JAVA_OPTS:--Xms12m -Xmx24m} \
-                ${CSD_JAVA_OPTS} \
-                org.apache.nifi.toolkit.tls.TlsToolkitMain \
-                client -F \
-                --configJson ${prefix}.json
-
-}
-
 nifi_init() {
     # Unlimit the number of file descriptors if possible
     unlimitFD
@@ -130,7 +94,7 @@ nifi_init() {
     locate_java8_home $1
 
     # TLS Client Init
-    [ $NIFI_SSL_ENABLED == "false" ] || [ -e tls-conf/tls.json ] || tls_client_init
+    tls_client_init
 
     # Simulate NIFI_HOME
     [ -d conf ] || mkdir conf
@@ -413,9 +377,10 @@ update_nifi_properties() {
         -e "s|@@ZK_QUORUM@@|${ZK_QUORUM}|g" \
         -e "s|@@ZK_ROOT@@|/${principal}|g" \
         -e "s|@@NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES@@|$(( ($num_of_nodes + 1)/2 ))|g" \
+        -e "s|@@NIFI_TLS_ENABLED@@|${NIFI_TLS_ENABLED}|g" \
         nifi.properties
 
-    if [ $NIFI_SSL_ENABLED == "true" ]; then
+    if [ $NIFI_TLS_ENABLED == "true" ]; then
         sed -i \
             -e 's/nifi\.web\.http\./nifi.web.https./' \
             nifi.properties

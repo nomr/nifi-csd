@@ -105,7 +105,6 @@ roles:
       NIFI_JAVA_OPTS: '-Xmx${java_heap_size}m -Xms${java_heap_size}m -X${java_non_standard_options} -D${java_properties} -Dapp=NiFi'
       NIFI_LOG_DIR: /var/log/nifi
       NIFI_PID_DIR: '${nifi_home}'
-      NIFI_SSL_ENABLED: '${ssl_enabled}'
       NIFI_SEED: '${nifi_sensitive_props_key}'
       NIFI_CMF_ADMINS: '${cmf_admins}'
 
@@ -118,7 +117,6 @@ roles:
 #      NIFI_JAVA_OPTS: '-D${java_properties}'
 #      NIFI_LOG_DIR: /var/log/nifi
 #      NIFI_PID_DIR: '${nifi_home}'
-#      NIFI_SSL_ENABLED: '${ssl_enabled}'
 
   commands:
   - name: server_test_zookeeper
@@ -956,15 +954,6 @@ roles:
     softMin: 512
     default: 512
 
-  - name: ssl_enabled
-    config_name: nifi.security.ssl.enabled
-    label: Enable TLS/SSL for Node
-    description: Encrypt communication between clients and Node using
-      Transport Layer Security (TLS) (formerly known as Secure Socket Layer (SSL)).
-    required: true
-    type: boolean
-    default: true
-
   - name: ssl_client_truststore_password
     configName: nifi.security.truststorePasswd
     label: Node TLS Certificate Trust Store Password
@@ -1131,7 +1120,8 @@ roles:
         nifi_web_jetty_threads,
         nifi_sensitive_props_key,
 
-        ssl_server_keystore_password, ssl_server_keystore_keypassword,
+        ssl_server_keystore_password,
+        #ssl_server_keystore_keypassword,
         ssl_client_truststore_password,
 
         nifi_security_user_authorizer, nifi_security_user_login_identity_provider,
@@ -1201,7 +1191,7 @@ roles:
       - key: nifi.remote.input.host
         value: ${host}
       - key: nifi.remote.input.secure
-        value: ${ssl_enabled}
+        value: '@@NIFI_TLS_ENABLED@@'
       - key: nifi.remote.input.http.transaction.ttl
         value: ${nifi_remote_input_http_transaction_ttl} sec
 
@@ -1214,20 +1204,27 @@ roles:
 
       - {key: nifi.sensitive.props.algorithm, value: PBEWITHMD5AND256BITAES-CBC-OPENSSL}
       - {key: nifi.sensitive.props.provider, value: BC}
-      - {key: nifi.security.keystoreType, value: JKS}
+      - key: nifi.security.ssl.enabled
+        value: '@@NIFI_TLS_ENABLED@@'
+      - key: nifi.security.keystoreType
+        value: JKS
       - key: nifi.security.keystore
         value: '@@CONF_DIR@@/keystore.jks'
-      - {key: nifi.security.truststoreType, value: JKS}
+      - key: nifi.security.keyPasswd
+        value: '${ssl_server_keystore_password}'
+      - key: nifi.security.truststoreType
+        value: JKS
       - key: nifi.security.truststore
         value: '@@CONF_DIR@@/truststore.jks'
-      - {key: nifi.security.needClientAuth, value: '${ssl_enabled}'}
+      - key: nifi.security.needClientAuth
+        value: '@@NIFI_TLS_ENABLED@@'
 
       - key: nifi.cluster.node.address
         value: ${host}
       - key: nifi.cluster.protocol.heartbeat.interval
         value: ${nifi_cluster_protocol_heartbeat_interval} sec
       - key: nifi.cluster.protocol.is.secure
-        value: ${ssl_enabled}
+        value: '@@NIFI_TLS_ENABLED@@'
 
       - key: nifi.cluster.is.node
         value: true
@@ -1294,7 +1291,7 @@ roles:
       additionalConfigs:
       - {key: keyStore, value: 'keystore.jks'}
       - {key: keyStorePassword, value: '${ssl_server_keystore_password}'}
-      - {key: keyPassword, value: '${ssl_server_keystore_keypassword}'}
+      - {key: keyPassword, value: '${ssl_server_keystore_password}'}
       - {key: trustStore, value: 'truststore.jks'}
       - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
 
