@@ -19,7 +19,7 @@
 
 set -efu -o pipefail
 
-NIFI_COMMON_SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/script/common.sh"
+NIFI_COMMON_SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/common.sh"
 . ${NIFI_COMMON_SCRIPT}
 
 unlimitFD() {
