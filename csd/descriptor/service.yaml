@@ -37,15 +37,17 @@ commands:
   roleName: NIFI_SERVER
   runMode: all
 - name: server_deploy_authorizations
-  label: Regenerate Authorizations
-  description: Deploys the initial authorizations file
-  roleCommand: server_deploy_authorizations
+  label: Deploy Default Authorizations
+  description: Create a backup of any existing authorizations.xml file and
+    replaces it with the default cloudera-managed model.
+  roleCommand: node_deploy_authorizations
   roleName: NIFI_SERVER
   runMode: "all"
-- name: server_remove_ssl
-  label: Regenerate TLS Certificates
-  description: Renews the KeyStore and TrustStore files
-  roleCommand: server_remove_ssl
+- name: service_remove_ssl
+  label: Renew TLS Certificates (next start)
+  description: Will delete the keystore and truststore so they are regenerated
+      in the next restart.
+  roleCommand: node_remove_ssl
   roleName: NIFI_SERVER
   runMode: "all"
 - name: server_remove_state
@@ -63,7 +65,7 @@ commands:
 
 serviceInit:
   preStartSteps:
-    - commandName: server_deploy_authorizations
+    - commandName: service_remove_ssl
 
 rollingRestart:
   workerSteps:
@@ -136,24 +138,32 @@ roles:
       args: [nifi-reset, zk-canary]
       environmentVariables: *environment_variables
 
-  - name: server_deploy_authorizations
-    label: Regenerate default authorizations
-    description: Deploys the default authorizations file
+  - name: node_deploy_authorizations
+    label: Deploy Default Authorizations
+    description: Create a backup of any existing authorizations.xml file and
+      replaces it with the default cloudera-managed model.
     expectedExitCodes: [0]
     requiredRoleState: stopped
     commandRunner:
-      program: scripts/control.sh
-      args: [nifi-reset, cloudera_authorizations]
       environmentVariables: *environment_variables
-  - name: server_remove_ssl
-    label: Regenerate TLS Certificates
-    description: Renews the KeyStore and TrustStore files on stopped nodes.
+      program: scripts/authorizations.sh
+      args:
+      - deploy
+      - ${nifi_home}/authorizations.xml
+  - name: node_remove_ssl
+    label: Renew TLS Certificates (next start)
+    description: Will delete the keystore and truststore so they are regenerated
+      in the next restart.
     expectedExitCodes: [0]
     requiredRoleState: stopped
     commandRunner:
-      program: scripts/control.sh
-      args: [nifi-reset, ssl]
       environmentVariables: *environment_variables
+      program: scripts/exec.sh
+      args:
+      - 'rm'
+      - '-rf'
+      - '${nifi_home}/truststore.jks'
+      - '${nifi_home}/keystore.jks'
   - name: server_remove_state
     label: Reset NiFi State Files and Repositories
     description: Removes NiFi state on stopped nodes.
@@ -176,17 +186,6 @@ roles:
   topology:
     minInstances: 0
     softMinInstances: 3
-
-  sslClient:
-    truststoreLocationConfigName: nifi.security.truststore
-    truststorePasswordConfigName: nifi.security.truststorePasswd
-  sslServer:
-    enabledConfigName: nifi.security.ssl.enabled
-    keyIdentifier: nifi_server
-    keyPasswordOptionality: optional
-    keystoreKeyPasswordConfigName: nifi.security.keyPasswd
-    keystoreLocationConfigName: nifi.security.keystore
-    keystorePasswordConfigName: nifi.security.keystorePasswd
 
   kerberosPrincipals:
   - name: nifi_principal
@@ -978,6 +977,39 @@ roles:
     softMin: 512
     default: 512
 
+  - name: ssl_enabled
+    config_name: nifi.security.ssl.enabled
+    label: Enable TLS/SSL for Node
+    description: Encrypt communication between clients and Node using
+      Transport Layer Security (TLS) (formerly known as Secure Socket Layer (SSL)).
+    required: true
+    type: boolean
+    default: true
+
+  - name: ssl_client_truststore_password
+    configName: nifi.security.truststorePasswd
+    label: Node TLS Certificate Trust Store Password
+    description: The password for the Node TLS/SSL Certificate Trust Store File.
+    required: true
+    type: string
+    initType: randomBase64
+
+  - name: ssl_server_keystore_password
+    configName: nifi.security.keystorePasswd
+    label: Node TLS Server JKS Keystore File Password
+    description: The password for the Node JKS keystore file.
+    required: true
+    type: string
+    initType: randomBase64
+
+  - name: ssl_server_keystore_keypassword
+    configName: nifi.security.keyPasswd
+    label: Node TLS Server JKS Keystore Key Password
+    description: The password that protects the private key contained in the
+      JKS keystore used when Node is acting as a TLS/SSL server.
+    required: true
+    type: string
+    initType: randomBase64
 
   configWriter:
     auxConfigGenerators:
@@ -1120,8 +1152,8 @@ roles:
         nifi_web_jetty_threads,
         nifi_sensitive_props_key,
 
-        ssl_server_keystore_location, ssl_server_keystore_password, ssl_server_keystore_keypassword,
-        ssl_client_truststore_location, ssl_client_truststore_password,
+        ssl_server_keystore_password, ssl_server_keystore_keypassword,
+        ssl_client_truststore_password,
 
         nifi_security_user_authorizer, nifi_security_user_login_identity_provider,
 
@@ -1204,7 +1236,11 @@ roles:
       - {key: nifi.sensitive.props.algorithm, value: PBEWITHMD5AND256BITAES-CBC-OPENSSL}
       - {key: nifi.sensitive.props.provider, value: BC}
       - {key: nifi.security.keystoreType, value: JKS}
+      - key: nifi.security.keystore
+        value: ${nifi_home}/keystore.jks
       - {key: nifi.security.truststoreType, value: JKS}
+      - key: nifi.security.truststore
+        value: ${nifi_home}/truststore.jks
       - {key: nifi.security.needClientAuth, value: '${ssl_enabled}'}
 
       - key: nifi.cluster.node.address
@@ -1277,10 +1313,10 @@ roles:
       configFormat: hadoop_xml
       includedParams: []
       additionalConfigs:
-      - {key: keyStore, value: '${ssl_server_keystore_location}'}
+      - {key: keyStore, value: '${nifi_home}/keystore.jks'}
       - {key: keyStorePassword, value: '${ssl_server_keystore_password}'}
       - {key: keyPassword, value: '${ssl_server_keystore_keypassword}'}
-      - {key: trustStore, value: '${ssl_client_truststore_location}'}
+      - {key: trustStore, value: '${nifi_home}/truststore.jks'}
       - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
 
     - filename: nifi-reset.properties
@@ -1297,8 +1333,6 @@ roles:
           zookeeper-client -server $ZK_QUORUM get $ZK_ROOT/canary;
           zookeeper-client -server $ZK_QUORUM delete $ZK_ROOT/canary;
          '
-      - key: ssl
-        value: 'rm -f ${ssl_server_keystore_location} ${ssl_client_truststore_location}'
       - key: state
         value: '
           IFS=: read -ra array <<< ${nifi_provenance_repository_directory}:${nifi_content_repository_directory};
@@ -1317,9 +1351,7 @@ roles:
         value: '
           CLIENT_JVMFLAGS=-Djava.security.auth.login.config=jaas.conf
           zookeeper-client -server $ZK_QUORUM rmr /$(cut -d/ -f 1 <<< $nifi_principal)
-        '
-      - key: cloudera_authorizations
-        value: cp -f authorizations.xml ${nifi_home}/authorizations.xml
+          '
 
     - filename: nifi-variable-registry.properties
       configFormat: properties

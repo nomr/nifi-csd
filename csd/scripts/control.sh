@@ -19,16 +19,8 @@
 
 set -efu -o pipefail
 
-. ${COMMON_SCRIPT}
-
-warn() {
-    echo "${PROGNAME}: $*"
-}
-
-die() {
-    warn "$*"
-    exit 1
-}
+NIFI_COMMON_SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/script/common.sh"
+. ${NIFI_COMMON_SCRIPT}
 
 unlimitFD() {
     # Use the maximum available, or set MAX_FD != -1 to use that
@@ -87,32 +79,6 @@ insert_if_not_exists() {
     if ! grep -c "${LINE}" ${FILE} > /dev/null; then
         echo "${LINE}" >> ${FILE}
     fi
-}
-
-close_xml_file() {
-    XML_TAG=$1
-    FILE=$2
-
-    if [ ! -e $FILE ]; then
-        return 0
-    elif ! tail ${FILE} | grep -c "^</${XML_TAG}>$" > /dev/null; then
-        echo "</${XML_TAG}>" >> ${FILE}
-    fi
-}
-
-close_prefix_safety_valve_xml() {
-    local prefix=$1
-    local xml_tag=$2
-
-    # close all safety-valve files
-    for sv_xml in `find . -type f -name "${prefix}-*safety-valve.xml"`; do
-        close_xml_file "${xml_tag}" ${sv_xml}
-    done
-
-    # hadoop.xml or hadoop_xml files use "configuration" as xml_tag
-    for sv_xml in `find . -type f -name "${prefix}-*safety-valve.hadoop[_,.]xml"`; do
-        close_xml_file "configuration" ${sv_xml}
-    done
 }
 
 convert_prefix_hadoop_xml() {
@@ -196,7 +162,6 @@ nifi_init() {
     [ -e 'state-management.xml' ] || create_state_management_xml
     [ -e 'authorizers.xml' ] || create_authorizers_xml
     [ -e 'cmf-tenants.xml' ] || create_cmf_tenants_xml
-    [ -e 'authorizations.xml' ] || create_authorizations_xml
 
     update_logback_xml
     update_nifi_properties
@@ -229,31 +194,6 @@ create_login_identity_providers_xml() {
         -e "s|@@REALM@@|${realm}|g" \
         $out
 
-}
-
-create_authorizations_xml() {
-    local prefix=authorizations
-
-    close_prefix_safety_valve_xml ${prefix} "policies></authorizations"
-
-    in=${prefix}-safety-valve.xml
-    out=${prefix}.xml
-    xmllint --format $in > $out
-    rm -f $in
-
-    sed -i \
-        -e "s|@@POLICY_GUID_FLOW_R@@|$(guid /flow/R)|" \
-        -e "s|@@POLICY_GUID_RESTRICTED_COMPONENTS_W|$(guid /restricted-components/W)|" \
-        -e "s|@@POLICY_GUID_TENANTS_R|$(guid /tenants/R)|" \
-        -e "s|@@POLICY_GUID_TENANTS_W|$(guid /tenants/W)|" \
-        -e "s|@@POLICY_GUID_POLICIES_R|$(guid /policies/R)|" \
-        -e "s|@@POLICY_GUID_POLICIES_W|$(guid /policies/W)|" \
-        -e "s|@@POLICY_GUID_CONTROLLER_R|$(guid /controller/R)|" \
-        -e "s|@@POLICY_GUID_CONTROLLER_W|$(guid /controller/W)|" \
-        -e "s|@@POLICY_GUID_PROXY_W|$(guid /proxy/W)|" \
-        -e "s|@@CM_NODE_GUID@@|$(guid cmf-nodes)|" \
-        -e "s|@@CM_ADMIN_GUID@@|$(guid cmf-admins)|" \
-        $out
 }
 
 create_authorizers_xml() {
@@ -370,11 +310,6 @@ create_state_management_xml() {
         -e "s|@@ZK_QUORUM@@|${ZK_QUORUM}|g" \
         -e "s|@@ZK_ROOT@@|/${principal}|g" \
         $out
-}
-
-guid() {
-    local bits=$(echo "${1}#${NIFI_SEED}" | md5sum | cut -d' ' -f 1)
-    echo ${bits:0:8}-${bits:8:4}-${bits:12:4}-${bits:16:4}-${bits:20}
 }
 
 create_cmf_tenants_nodes_hadoop_xml() {

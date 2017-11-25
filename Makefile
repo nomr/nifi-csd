@@ -54,6 +54,7 @@ csd: csd/descriptor/service.sdl
 
 $(PKG_NAME)-$(VERSION): csd $(PKG_NAME)-$(VERSION)/images/icon.png validator.jar
 	rsync --exclude '*.swp' -a  $</ $@/
+	rm $@/descriptor/service.yaml
 	cat $</descriptor/service.sdl | jq ".version=\"$(subst $(PKG_NAME)-,,$@)\"" > $@/descriptor/service.sdl
 
 $(PKG_NAME)-$(VERSION).jar: $(PKG_NAME)-$(VERSION)
