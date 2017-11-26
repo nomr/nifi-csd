@@ -41,23 +41,19 @@ commands:
     replaces it with the default cloudera-managed model.
   roleCommand: node_deploy_authorizations
   roleName: NIFI_SERVER
-  runMode: "all"
-- name: server_remove_state
-  label: Remove Local State and Repositories
-  description: Deletes authorizations.xml, users.xml and flow.xml.gz files
-  roleCommand: server_remove_state
+  runMode: all
+- name: server_deploy_flow
+  label: Deploy Default Root Process Group
+  description: Create a backup of any existing flow.xml.gz file and
+    replaces it with the default cloudera model.
+  roleCommand: node_deploy_flow
   roleName: NIFI_SERVER
-  runMode: "all"
-- name: server_remove_zookeeper
-  label: Remove Global State
-  description: Deletes Zookeeper root node
-  roleCommand: server_remove_zookeeper
-  roleName: NIFI_SERVER
-  runMode: "single"
+  runMode: all
 
 serviceInit:
   preStartSteps:
     - commandName: server_deploy_authorizations
+    - commandName: server_deploy_flow
 
 rollingRestart:
   workerSteps:
@@ -140,6 +136,20 @@ roles:
       args:
       - deploy
       - ${nifi_home}/authorizations.xml
+
+  - name: node_deploy_flow
+    label: Deploy Default Root Process Group
+    description: Create a backup of any existing flow.xml.gz file and
+      replaces it with the default cloudera model.
+    expectedExitCodes: [0]
+    requiredRoleState: stopped
+    commandRunner:
+      environmentVariables: *environment_variables
+      program: scripts/flow.sh
+      args:
+      - deploy
+      - ${nifi_home}/flow.xml.gz
+
   - name: server_remove_state
     label: Reset NiFi State Files and Repositories
     description: Removes NiFi state on stopped nodes.
@@ -990,6 +1000,8 @@ roles:
       sourceFilename: aux/authorizers-user-group-provider-safety-valve.xml
     - filename: cmf-tenants-groups-safety-valve.hadoop.xml
       sourceFilename: aux/cmf-tenants-groups-safety-valve.xml
+    - filename: flow-safety-valve.xml
+      sourceFilename: aux/flow-safety-valve.xml
     - filename: jaas.conf
       sourceFilename: aux/jaas.conf
     - filename: login-identity-providers-safety-valve.xml
