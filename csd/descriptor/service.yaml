@@ -27,7 +27,6 @@ serviceDependencies:
 - name: ZOOKEEPER
   required: 'true'
 - name: NIFI_TLS
-  required: 'true'
 
 commands:
 - name: server_test_zookeeper
@@ -41,13 +40,6 @@ commands:
   description: Create a backup of any existing authorizations.xml file and
     replaces it with the default cloudera-managed model.
   roleCommand: node_deploy_authorizations
-  roleName: NIFI_SERVER
-  runMode: "all"
-- name: service_remove_ssl
-  label: Renew TLS Certificates (next start)
-  description: Will delete the keystore and truststore so they are regenerated
-      in the next restart.
-  roleCommand: node_remove_ssl
   roleName: NIFI_SERVER
   runMode: "all"
 - name: server_remove_state
@@ -65,7 +57,7 @@ commands:
 
 serviceInit:
   preStartSteps:
-    - commandName: service_remove_ssl
+    - commandName: server_deploy_authorizations
 
 rollingRestart:
   workerSteps:
@@ -112,7 +104,6 @@ roles:
       NIFI_JAVA_OPTS: '-Xmx${java_heap_size}m -Xms${java_heap_size}m -X${java_non_standard_options} -D${java_properties} -Dapp=NiFi'
       NIFI_LOG_DIR: /var/log/nifi
       NIFI_PID_DIR: '${nifi_home}'
-      NIFI_SSL_ENABLED: '${ssl_enabled}'
       NIFI_SEED: '${nifi_sensitive_props_key}'
       NIFI_CMF_ADMINS: '${cmf_admins}'
 
@@ -125,7 +116,6 @@ roles:
 #      NIFI_JAVA_OPTS: '-D${java_properties}'
 #      NIFI_LOG_DIR: /var/log/nifi
 #      NIFI_PID_DIR: '${nifi_home}'
-#      NIFI_SSL_ENABLED: '${ssl_enabled}'
 
   commands:
   - name: server_test_zookeeper
@@ -150,20 +140,6 @@ roles:
       args:
       - deploy
       - ${nifi_home}/authorizations.xml
-  - name: node_remove_ssl
-    label: Renew TLS Certificates (next start)
-    description: Will delete the keystore and truststore so they are regenerated
-      in the next restart.
-    expectedExitCodes: [0]
-    requiredRoleState: stopped
-    commandRunner:
-      environmentVariables: *environment_variables
-      program: scripts/exec.sh
-      args:
-      - 'rm'
-      - '-rf'
-      - '${nifi_home}/truststore.jks'
-      - '${nifi_home}/keystore.jks'
   - name: server_remove_state
     label: Reset NiFi State Files and Repositories
     description: Removes NiFi state on stopped nodes.
@@ -977,15 +953,6 @@ roles:
     softMin: 512
     default: 512
 
-  - name: ssl_enabled
-    config_name: nifi.security.ssl.enabled
-    label: Enable TLS/SSL for Node
-    description: Encrypt communication between clients and Node using
-      Transport Layer Security (TLS) (formerly known as Secure Socket Layer (SSL)).
-    required: true
-    type: boolean
-    default: true
-
   - name: ssl_client_truststore_password
     configName: nifi.security.truststorePasswd
     label: Node TLS Certificate Trust Store Password
@@ -1152,9 +1119,6 @@ roles:
         nifi_web_jetty_threads,
         nifi_sensitive_props_key,
 
-        ssl_server_keystore_password, ssl_server_keystore_keypassword,
-        ssl_client_truststore_password,
-
         nifi_security_user_authorizer, nifi_security_user_login_identity_provider,
 
         nifi_cluster_node_protocol_port, nifi_cluster_node_protocol_threads,
@@ -1222,9 +1186,9 @@ roles:
       - key: nifi.remote.input.host
         value: ${host}
       - key: nifi.remote.input.secure
-        value: ${ssl_enabled}
+        value: '@@NIFI_TLS_ENABLED@@'
       - key: nifi.remote.input.http.transaction.ttl
-        value: ${nifi_remote_input_http_transaction_ttl} sec
+        value: '${nifi_remote_input_http_transaction_ttl} sec'
 
       - key: nifi.web.http.host
         value: ${host}
@@ -1235,21 +1199,13 @@ roles:
 
       - {key: nifi.sensitive.props.algorithm, value: PBEWITHMD5AND256BITAES-CBC-OPENSSL}
       - {key: nifi.sensitive.props.provider, value: BC}
-      - {key: nifi.security.keystoreType, value: JKS}
-      - key: nifi.security.keystore
-        value: ${nifi_home}/keystore.jks
-      - {key: nifi.security.truststoreType, value: JKS}
-      - key: nifi.security.truststore
-        value: ${nifi_home}/truststore.jks
-      - {key: nifi.security.needClientAuth, value: '${ssl_enabled}'}
 
       - key: nifi.cluster.node.address
         value: ${host}
       - key: nifi.cluster.protocol.heartbeat.interval
         value: ${nifi_cluster_protocol_heartbeat_interval} sec
       - key: nifi.cluster.protocol.is.secure
-        value: ${ssl_enabled}
-
+        value: '@@NIFI_TLS_ENABLED@@'
       - key: nifi.cluster.is.node
         value: true
       - key: nifi.cluster.node.connection.timeout
@@ -1284,6 +1240,28 @@ roles:
       - key: nifi.variable.registry.properties
         value: nifi-variable-registry.properties
 
+    - filename: nifi-tls.properties
+      configFormat: properties
+      includedParams:
+      - ssl_server_keystore_password
+      - ssl_client_truststore_password
+      additionalConfigs:
+      - key: nifi.security.ssl.enabled
+        value: '@@NIFI_TLS_ENABLED@@'
+      - key: nifi.security.keystoreType
+        value: JKS
+      - key: nifi.security.keystore
+        value: '@@CONF_DIR@@/keystore.jks'
+      - key: nifi.security.keyPasswd
+        value: '${ssl_server_keystore_password}'
+      - key: nifi.security.truststoreType
+        value: JKS
+      - key: nifi.security.truststore
+        value: '@@CONF_DIR@@/truststore.jks'
+      - key: nifi.security.needClientAuth
+        value: '@@NIFI_TLS_ENABLED@@'
+
+
     - filename: state-management-local-provider.hadoop_xml
       configFormat: hadoop_xml
       includedParams: []
@@ -1313,10 +1291,10 @@ roles:
       configFormat: hadoop_xml
       includedParams: []
       additionalConfigs:
-      - {key: keyStore, value: '${nifi_home}/keystore.jks'}
+      - {key: keyStore, value: 'keystore.jks'}
       - {key: keyStorePassword, value: '${ssl_server_keystore_password}'}
-      - {key: keyPassword, value: '${ssl_server_keystore_keypassword}'}
-      - {key: trustStore, value: '${nifi_home}/truststore.jks'}
+      - {key: keyPassword, value: '${ssl_server_keystore_password}'}
+      - {key: trustStore, value: 'truststore.jks'}
       - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
 
     - filename: nifi-reset.properties
