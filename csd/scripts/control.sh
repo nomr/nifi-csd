@@ -23,6 +23,9 @@ NIFI_COMMON_SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/common.sh"
 . ${NIFI_COMMON_SCRIPT}
 
 NIFI_TLS_ENABLED=false
+tls_client_init() {
+    return 0
+}
 if [ -e tls-conf/client.sh ]; then
   . tls-conf/client.sh
 fi
@@ -369,6 +372,13 @@ update_nifi_properties() {
     local num_of_nodes=$(cut -d ':' -f 1 nifi-nodes.properties | sort | uniq | wc -l)
     local principal=$(echo ${nifi_principal} | cut -d '/' -f 1)
 
+    if [ $NIFI_TLS_ENABLED == "true" ]; then
+        echo -e "$(cat nifi-tls.properties)$(cat nifi.properties)" > nifi.properties
+        sed -i \
+            -e 's/nifi\.web\.http\./nifi.web.https./' \
+            nifi.properties
+    fi
+
     explode_arrays nifi
 
     sed -i \
@@ -379,12 +389,6 @@ update_nifi_properties() {
         -e "s|@@NIFI_CLUSTER_FLOW_ELECTION_MAX_CANDIDATES@@|$(( ($num_of_nodes + 1)/2 ))|g" \
         -e "s|@@NIFI_TLS_ENABLED@@|${NIFI_TLS_ENABLED}|g" \
         nifi.properties
-
-    if [ $NIFI_TLS_ENABLED == "true" ]; then
-        sed -i \
-            -e 's/nifi\.web\.http\./nifi.web.https./' \
-            nifi.properties
-    fi
 
     NIFI_JAVA_OPTS="${NIFI_JAVA_OPTS} -Dnifi.properties.file.path=${CONF_DIR}/conf/nifi.properties"
 }

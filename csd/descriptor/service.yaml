@@ -27,7 +27,6 @@ serviceDependencies:
 - name: ZOOKEEPER
   required: 'true'
 - name: NIFI_TLS
-  required: 'true'
 
 commands:
 - name: server_test_zookeeper
@@ -1120,10 +1119,6 @@ roles:
         nifi_web_jetty_threads,
         nifi_sensitive_props_key,
 
-        ssl_server_keystore_password,
-        #ssl_server_keystore_keypassword,
-        ssl_client_truststore_password,
-
         nifi_security_user_authorizer, nifi_security_user_login_identity_provider,
 
         nifi_cluster_node_protocol_port, nifi_cluster_node_protocol_threads,
@@ -1193,7 +1188,7 @@ roles:
       - key: nifi.remote.input.secure
         value: '@@NIFI_TLS_ENABLED@@'
       - key: nifi.remote.input.http.transaction.ttl
-        value: ${nifi_remote_input_http_transaction_ttl} sec
+        value: '${nifi_remote_input_http_transaction_ttl} sec'
 
       - key: nifi.web.http.host
         value: ${host}
@@ -1204,20 +1199,6 @@ roles:
 
       - {key: nifi.sensitive.props.algorithm, value: PBEWITHMD5AND256BITAES-CBC-OPENSSL}
       - {key: nifi.sensitive.props.provider, value: BC}
-      - key: nifi.security.ssl.enabled
-        value: '@@NIFI_TLS_ENABLED@@'
-      - key: nifi.security.keystoreType
-        value: JKS
-      - key: nifi.security.keystore
-        value: '@@CONF_DIR@@/keystore.jks'
-      - key: nifi.security.keyPasswd
-        value: '${ssl_server_keystore_password}'
-      - key: nifi.security.truststoreType
-        value: JKS
-      - key: nifi.security.truststore
-        value: '@@CONF_DIR@@/truststore.jks'
-      - key: nifi.security.needClientAuth
-        value: '@@NIFI_TLS_ENABLED@@'
 
       - key: nifi.cluster.node.address
         value: ${host}
@@ -1225,7 +1206,6 @@ roles:
         value: ${nifi_cluster_protocol_heartbeat_interval} sec
       - key: nifi.cluster.protocol.is.secure
         value: '@@NIFI_TLS_ENABLED@@'
-
       - key: nifi.cluster.is.node
         value: true
       - key: nifi.cluster.node.connection.timeout
@@ -1259,6 +1239,28 @@ roles:
 
       - key: nifi.variable.registry.properties
         value: nifi-variable-registry.properties
+
+    - filename: nifi-tls.properties
+      configFormat: properties
+      includedParams:
+      - ssl_server_keystore_password
+      - ssl_client_truststore_password
+      additionalConfigs:
+      - key: nifi.security.ssl.enabled
+        value: '@@NIFI_TLS_ENABLED@@'
+      - key: nifi.security.keystoreType
+        value: JKS
+      - key: nifi.security.keystore
+        value: '@@CONF_DIR@@/keystore.jks'
+      - key: nifi.security.keyPasswd
+        value: '${ssl_server_keystore_password}'
+      - key: nifi.security.truststoreType
+        value: JKS
+      - key: nifi.security.truststore
+        value: '@@CONF_DIR@@/truststore.jks'
+      - key: nifi.security.needClientAuth
+        value: '@@NIFI_TLS_ENABLED@@'
+
 
     - filename: state-management-local-provider.hadoop_xml
       configFormat: hadoop_xml
