@@ -990,7 +990,7 @@ roles:
 
   - name: ssl_subject_alternate_names
     configName: domainAlternativeNames
-    label: Domain Alternative Names
+    label: NiFi-TLS Domain Alternative Names
     description: The alternative domains used in the TLS certificates.
     required: false
     type: uri_array
@@ -1308,10 +1308,9 @@ roles:
 
     - filename: tls-conf/tls-client.hadoop_xml
       configFormat: hadoop_xml
-      includedParams: []
+      includedParams:
+      - ssl_subject_alternate_names
       additionalConfigs:
-      - key: domainAlternativeNames
-        value: '${host},${ssl_subject_alternate_names}'
       - {key: keyStore, value: 'keystore.jks'}
       - {key: keyStorePassword, value: '${ssl_server_keystore_password}'}
       - {key: keyPassword, value: '${ssl_server_keystore_password}'}
