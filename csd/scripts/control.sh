@@ -97,6 +97,8 @@ nifi_init() {
     locate_java8_home $1
 
     # TLS Client Init
+    DN_PREFIX="CN="
+    DN_SUFFIX=", OU=$(echo ${nifi_principal} | cut -d '/' -f 1), OU=$(echo ${nifi_principal} | cut -d '@' -f 2)"
     tls_client_init
 
     # Simulate NIFI_HOME
@@ -235,7 +237,7 @@ create_authorizers_xml() {
 }
 
 create_state_management_xml() {
-    local principal=$(echo ${nifi_pricipal} | cut -d '/' -f 1)
+    local principal=$(echo ${nifi_principal} | cut -d '/' -f 1)
 
     prefix=state-management
     convert_prefix_hadoop_xml ${prefix}
@@ -269,8 +271,6 @@ create_state_management_xml() {
 create_cmf_tenants_nodes_hadoop_xml() {
     local prefix=$1
     local out=${prefix}-users.hadoop.xml
-    local dnPrefix=$(cat tls-conf/tls.json | ${CDH_NIFI_JQ} -r .dnPrefix)
-    local dnSuffix=$(cat tls-conf/tls.json | ${CDH_NIFI_JQ} -r .dnSuffix)
 
     echo '<?xml version="1.0" encoding="UTF-8"?>' > $out
     echo '<configuration>' >> $out
@@ -286,7 +286,7 @@ create_cmf_tenants_nodes_hadoop_xml() {
       CMF_NODES_USER_GUIDS+=($node_guid)
       echo '  <property>' >> $out
       echo "    <name>${node_guid}</name>" >> $out
-      echo "    <value>${dnPrefix}${node_name}${dnSuffix}</value>" >> $out
+      echo "    <value>${DN_PREFIX}${node_name}${DN_SUFFIX}</value>" >> $out
       echo '  </property>' >> $out
     done
 

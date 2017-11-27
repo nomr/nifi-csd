@@ -1311,6 +1311,8 @@ roles:
       includedParams:
       - ssl_subject_alternate_names
       additionalConfigs:
+      - key: dn
+        value: '@@DN_PREFIX@@${host}@@DN_SUFFIX@@'
       - {key: keyStore, value: 'keystore.jks'}
       - {key: keyStorePassword, value: '${ssl_server_keystore_password}'}
       - {key: keyPassword, value: '${ssl_server_keystore_password}'}
@@ -1358,4 +1360,5 @@ roles:
     peerConfigGenerators:
     - roleName: NIFI_SERVER
       filename: nifi-nodes.properties
-      params: [nifi_cluster_node_protocol_port]
+      params:
+      - nifi_cluster_node_protocol_port
