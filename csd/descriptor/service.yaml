@@ -101,7 +101,7 @@ roles:
       NIFI_LOG_DIR: /var/log/nifi
       NIFI_PID_DIR: '${nifi_home}'
       NIFI_SEED: '${nifi_sensitive_props_key}'
-      NIFI_CMF_ADMINS: '${cmf_admins}'
+      NIFI_CMF_ADMINS: '${nifi_tenants_admins}'
 
 #  stopRunner:
 #    program: scripts/control.sh
@@ -260,8 +260,8 @@ roles:
     mode: '0750'
     default: /data/nifi/home
 
-  - name: cmf_admins
-    configName: cmf_admins
+  - name: nifi_tenants_admins
+    configName: nifi_tenants_admins
     label: NiFi Administrator Identities
     description: Identities that will be granted Admin access to NiFi.
     required: true
@@ -1005,8 +1005,8 @@ roles:
       sourceFilename: aux/authorizers-authorizer-safety-valve.xml
     - filename: authorizers-user-group-provider-safety-valve.xml
       sourceFilename: aux/authorizers-user-group-provider-safety-valve.xml
-    - filename: cmf-tenants-groups-safety-valve.hadoop.xml
-      sourceFilename: aux/cmf-tenants-groups-safety-valve.xml
+    - filename: tenants-groups-safety-valve.hadoop.xml
+      sourceFilename: aux/tenants-groups-safety-valve.xml
     - filename: flow-safety-valve.xml
       sourceFilename: aux/flow-safety-valve.xml
     - filename: jaas.conf
@@ -1042,7 +1042,7 @@ roles:
       additionalConfigs:
       - {key: identifier, value: cloudera-user-group-provider}
       - {key: class, value: org.apache.nifi.authorization.FileUserGroupProvider}
-      - {key: Users File, value: '@@CONF_DIR@@/cmf-tenants.xml'}
+      - {key: Users File, value: '@@CONF_DIR@@/tenants.xml'}
       - {key: cdh.authorizers.type, value: userGroupProvider}
 
     - filename: authorizers-user-group-provider-file.hadoop_xml

@@ -117,7 +117,7 @@ nifi_init() {
     [ -e 'login-identity-providers.xml' ] || create_login_identity_providers_xml
     [ -e 'state-management.xml' ] || create_state_management_xml
     [ -e 'authorizers.xml' ] || create_authorizers_xml
-    [ -e 'cmf-tenants.xml' ] || create_cmf_tenants_xml
+    [ -e 'tenants.xml' ] || create_tenants_xml
 
     update_logback_xml
     update_nifi_properties
@@ -268,7 +268,7 @@ create_state_management_xml() {
         $out
 }
 
-create_cmf_tenants_nodes_hadoop_xml() {
+create_tenants_nodes_hadoop_xml() {
     local prefix=$1
     local out=${prefix}-users.hadoop.xml
 
@@ -310,10 +310,11 @@ create_cmf_tenants_nodes_hadoop_xml() {
         ${prefix}-groups-safety-valve.hadoop.xml
 }
 
-create_cmf_tenants_xml() {
-    local prefix=cmf-tenants
+create_tenants_xml() {
+    local prefix=tenants
+    local principal=$(echo ${nifi_principal} | cut -d '/' -f 1)
 
-    create_cmf_tenants_nodes_hadoop_xml ${prefix}
+    create_tenants_nodes_hadoop_xml ${prefix}
 
     close_prefix_safety_valve_xml ${prefix}-groups "groups"
     close_prefix_safety_valve_xml ${prefix} "tenants"
@@ -338,6 +339,7 @@ create_cmf_tenants_xml() {
     sed -i \
         -e "s|@@CMF_ADMINS_GUID@@|$(guid cmf-admins)|" \
         -e "s|@@CMF_NODES_GUID@@|$(guid cmf-nodes)|" \
+        -e "s|@@PRINCIPAL@@|${principal}|" \
         -e "s|@@NIFI_ADMIN_GUID@@|$(guid ${nifi_admin_principal})|" \
         $out
 }
