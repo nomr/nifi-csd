@@ -77,7 +77,7 @@ parameters:
   configurableInWizard: true
   type: path
   pathType: serviceSpecific
-  default: /usr/java/jdk1.8.0_121
+  default: /usr/java/default
 
 roles:
 - name: NIFI_SERVER
