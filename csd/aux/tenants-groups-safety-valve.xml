@@ -6,11 +6,11 @@
   </property>
   <property>
     <name>@@CMF_NODES_GUID@@</name>
-    <value>cmf-nodes</value>
+    <value>@@PRINCIPAL@@-nodes</value>
     <description>@@CMF_NODES_USER_GUIDS@@</description>
   </property>
   <property>
     <name>@@CMF_ADMINS_GUID@@</name>
-    <value>cmf-admins</value>
+    <value>@@PRINCIPAL@@-admins</value>
     <description>@@NIFI_ADMIN_GUID@@</description>
   </property>
