@@ -17,7 +17,7 @@ runAs:
   principal: nifi
   user: nifi
 
-maxInstances: 1
+maxInstances:
 
 parcel:
   repoUrl: https://github.com/nomr/nifi-parcel/releases/download/v1.4.0+nifi0.6.1
