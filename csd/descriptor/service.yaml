@@ -88,8 +88,7 @@ roles:
   externalLink:
     name: webserver_web_ui
     label: NiFi UI
-    url: 'http://${host}:${nifi_web_http_port}/nifi'
-    secureUrl: 'https://${host}:${nifi_web_http_port}/nifi'
+    url: 'https://${host}:${nifi_web_http_port}/nifi'
 
   startRunner:
     program: scripts/control.sh
