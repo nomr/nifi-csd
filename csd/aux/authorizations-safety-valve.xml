@@ -47,9 +47,11 @@
             <group identifier="@@CM_NODE_GUID@@"/>
          </policy>
         <policy identifier="@@POLICY_GUID_DATA_ROOT_R@@" resource="/data/process-groups/@@FLOWCONTROLLER_ROOTGROUP_GUID@@" action="R">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
             <group identifier="@@CM_NODE_GUID@@"/>
         </policy>
         <policy identifier="@@POLICY_GUID_DATA_ROOT_W@@" resource="/data/process-groups/@@FLOWCONTROLLER_ROOTGROUP_GUID@@" action="W">
+            <group identifier="@@CM_ADMIN_GUID@@"/>
             <group identifier="@@CM_NODE_GUID@@"/>
          </policy>
         <policy identifier="@@POLICY_GUID_POLICIES_ROOT_R@@" resource="/policies/process-groups/@@FLOWCONTROLLER_ROOTGROUP_GUID@@" action="R">
