@@ -198,6 +198,8 @@ roles:
         level="INFO"/>}
     - {key: '1', value: <logger name="org.apache.nifi.controller.repository.StandardProcessSession"
         level="WARN" />}
+    - {key: '1', value: <logger name="org.apache.nifi.remote.StandardRemoteGroupPort"
+        level="WARN" />}
     - {key: '1', value: <logger name="org.apache.zookeeper.ClientCnxn" level="ERROR"
         />}
     - {key: '1', value: <logger name="org.apache.zookeeper.server.NIOServerCnxn" level="ERROR"
