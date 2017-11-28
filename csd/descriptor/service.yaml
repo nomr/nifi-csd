@@ -395,9 +395,10 @@ roles:
     label: Security User Login Identity Provider
     name: nifi_security_user_login_identity_provider
     required: false
+    configurableInWizard: true
     type: string_enum
-    validValues: ['', kerberos-provider]
-    default: ''
+    validValues: ['', kerberos]
+    default: kerberos
 
   - name: nifi_flowfile_repository_implementation
     configName: nifi.flowfile.repository.implementation
@@ -882,9 +883,10 @@ roles:
     label: Zookeeper Authentication Type
     description: Zookeeper Authentication Type
     required: true
+    configurableInWizard: true
     type: string_enum
     validValues: [default, sasl]
-    default: default
+    default: sasl
 
   - name: state_management_zk_provider_access_control
     label: State Management Zookeeper Provider Access Control
@@ -897,9 +899,10 @@ roles:
       is available only if access to ZooKeeper is secured via Kerberos or if a Username
       and Password are set.'
     required: true
+    configurableInWizard: true
     type: string_enum
     validValues: [Open, CreatorOnly]
-    default: Open
+    default: CreatorOnly
 
 
   - name: state_management_local_provider_directory
@@ -1083,12 +1086,16 @@ roles:
       configFormat: hadoop_xml
       includedParams: []
       additionalConfigs:
-      - {key: identifier, value: kerberos-provider}
-      - {key: class, value: org.apache.nifi.kerberos.KerberosProvider}
-      - {key: Authentication Expiration, value: '${login_identity_providers_kerberos_authentication_expiration}
-          hours'}
-      - {key: Default Realm, value: '@@REALM@@'}
-      - {key: cdh.login.identity.providers.type, value: provider}
+      - key: identifier
+        value: kerberos
+      - key: class
+        value: org.apache.nifi.kerberos.KerberosProvider
+      - key: Authentication Expiration
+        value: '${login_identity_providers_kerberos_authentication_expiration} hours'
+      - key: Default Realm
+        value: '@@REALM@@'
+      - key: cdh.login.identity.providers.type
+        value: provider
 
     - filename: nifi.properties
       configFormat: properties
