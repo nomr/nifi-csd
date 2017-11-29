@@ -179,9 +179,9 @@ roles:
   - name: nifi_spnego_principal
     primary: HTTP
     instance: ${host}
-  - name: nifi_admin_principal
+  - name: nifi_nifi_principal
     primary: ${principal}
-    instance: nifi-admin
+    instance: nifi
 
   logging:
     dir: /var/log/nifi
