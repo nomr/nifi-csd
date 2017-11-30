@@ -86,4 +86,4 @@ nifi-$(PKG_VERSION)-bin.tar.gz: nifi-$(PKG_VERSION)-bin.tar.gz-SHA256
 
 %.sdl: %.yaml validator.jar
 	python yaml2json.py $< $@
-	java -jar validator.jar -l 'NIFI_TLS' -s $@
+	java -jar validator.jar -l 'KAFKA KUDU NIFI_TLS' -s $@
