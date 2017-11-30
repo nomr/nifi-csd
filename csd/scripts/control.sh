@@ -292,7 +292,6 @@ create_tenants_nodes_hadoop_xml() {
 
     local CMF_ADMINS_USER_GUIDS=()
     IFS='^' read -ra identities <<< ${NIFI_CMF_ADMINS}
-    identities+=(${nifi_admin_principal})
     for i in "${identities[@]}"; do
       local identifier=$(guid "$i")
       CMF_ADMINS_USER_GUIDS+=($identifier)
@@ -340,7 +339,6 @@ create_tenants_xml() {
         -e "s|@@CMF_ADMINS_GUID@@|$(guid cmf-admins)|" \
         -e "s|@@CMF_NODES_GUID@@|$(guid cmf-nodes)|" \
         -e "s|@@PRINCIPAL@@|${principal}|" \
-        -e "s|@@NIFI_ADMIN_GUID@@|$(guid ${nifi_admin_principal})|" \
         $out
 }
 

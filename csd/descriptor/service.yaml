@@ -27,6 +27,12 @@ serviceDependencies:
 - name: ZOOKEEPER
   required: 'true'
 - name: NIFI_TLS
+- name: HDFS
+- name: HIVE
+- name: HBASE
+- name: SOLR
+- name: KAFKA
+- name: KUDU
 
 commands:
 - name: server_test_zookeeper
@@ -179,9 +185,9 @@ roles:
   - name: nifi_spnego_principal
     primary: HTTP
     instance: ${host}
-  - name: nifi_admin_principal
+  - name: nifi_nifi_principal
     primary: ${principal}
-    instance: nifi-admin
+    instance: nifi
 
   logging:
     dir: /var/log/nifi
@@ -1257,6 +1263,8 @@ roles:
       - key: nifi.zookeeper.kerberos.removeRealmFromPrincipal
         value: true
 
+      - key: nifi.kerberos.krb5.file
+        value: /etc/krb5.conf
       - key: nifi.kerberos.service.keytab.location
         value: nifi.keytab
       - key: nifi.kerberos.spnego.keytab.location
