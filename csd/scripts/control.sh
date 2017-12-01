@@ -418,8 +418,16 @@ update_jaas_conf() {
 
 nifi_start() {
     NIFI_JAVA_OPTS="${CSD_JAVA_OPTS} ${NIFI_JAVA_OPTS}"
-    run_nifi_cmd="'${JAVA}' -cp '${CONF_DIR}:${CDH_NIFI_HOME}/lib/*' ${NIFI_JAVA_OPTS} org.apache.nifi.NiFi"
-    eval "cd ${CONF_DIR} && exec ${run_nifi_cmd}"
+
+    CLASSPATH="${CONF_DIR}"
+    [ -e "${CONF_DIR}/hadoop-conf" ] && CLASSPATH="${CLASSPATH}:${CONF_DIR}/hadoop-conf"
+    [ -e "${CONF_DIR}/hbase-conf" ] && CLASSPATH="${CLASSPATH}:${CONF_DIR}/hbase-conf"
+
+    run_nifi_cmd="cd ${CONF_DIR} && exec '${JAVA}' -cp '${CLASSPATH}:${CDH_NIFI_HOME}/lib/*' ${NIFI_JAVA_OPTS} org.apache.nifi.NiFi"
+
+    unset HADOOP_CREDSTORE_PASSWORD
+    unset NIFI_SEED
+    eval "${run_nifi_cmd}"
 }
 
 nifi_reset() {

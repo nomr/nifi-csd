@@ -31,8 +31,15 @@ serviceDependencies:
 - name: HIVE
 - name: HBASE
 - name: SOLR
-- name: KAFKA
 - name: KUDU
+
+hdfsDirs:
+- name: CreateHDFSDirCommand
+  label: Create NiFi HDFS Directory
+  description: Creates the NiFi directory in HDFS
+  directoryDescription: NiFi user HDFS directory
+  path: "/user/${user}"
+  permissions: "0750"
 
 commands:
 - name: server_test_zookeeper
@@ -58,6 +65,7 @@ commands:
 
 serviceInit:
   preStartSteps:
+    - commandName: CreateHDFSDirCommand
     - commandName: server_deploy_authorizations
     - commandName: server_deploy_flow
 
