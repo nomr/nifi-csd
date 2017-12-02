@@ -417,13 +417,21 @@ update_jaas_conf() {
 }
 
 nifi_start() {
-    NIFI_JAVA_OPTS="${CSD_JAVA_OPTS} ${NIFI_JAVA_OPTS}"
-
     CLASSPATH="${CONF_DIR}"
     [ -e "${CONF_DIR}/hadoop-conf" ] && CLASSPATH="${CLASSPATH}:${CONF_DIR}/hadoop-conf"
     [ -e "${CONF_DIR}/hbase-conf" ] && CLASSPATH="${CLASSPATH}:${CONF_DIR}/hbase-conf"
 
-    run_nifi_cmd="cd ${CONF_DIR} && exec '${JAVA}' -cp '${CLASSPATH}:${CDH_NIFI_HOME}/lib/*' ${NIFI_JAVA_OPTS} org.apache.nifi.NiFi"
+    IFS=':' read -ra parcel_dirnames <<< ${PARCEL_DIRNAMES}
+    for p in "${parcel_dirnames[@]}"; do
+        if [[ $p == GPLEXTRAS* ]]; then
+            export NIFI_HDFS_AUX="${PARCELS_ROOT}/${p}/lib/hadoop/lib"
+        fi
+    done
+
+    NIFI_JAVA_OPTS="${CSD_JAVA_OPTS} -cp '${CLASSPATH}:${CDH_NIFI_HOME}/lib/*' ${NIFI_JAVA_OPTS}"
+    NIFI_JAVA_OPTS="-Djava.library.path=${JAVA_LIBRARY_PATH} ${NIFI_JAVA_OPTS}"
+
+    run_nifi_cmd="cd ${CONF_DIR} && exec '${JAVA}' ${NIFI_JAVA_OPTS} org.apache.nifi.NiFi"
 
     unset HADOOP_CREDSTORE_PASSWORD
     unset NIFI_SEED

@@ -22,14 +22,16 @@ maxInstances:
 parcel:
   repoUrl: https://github.com/nomr/nifi-parcel/releases/download/v1.4.0+nifi0.6.1
   requiredTags: [nifi]
+  optionalTags:
+  - hadoop_lzo
 
 serviceDependencies:
 - name: ZOOKEEPER
   required: 'true'
 - name: NIFI_TLS
 - name: HDFS
-- name: HIVE
 - name: HBASE
+- name: HIVE
 - name: SOLR
 - name: KUDU
 
@@ -109,9 +111,9 @@ roles:
     args: [nifi-start]
     environmentVariables: &environment_variables
       JAVA_HOME: '${java_home}'
+      JAVA_LIBRARY_PATH: ''
       NIFI_HOME: '${nifi_home}'
       NIFI_JAVA_OPTS: '-Xmx${java_heap_size}m -Xms${java_heap_size}m -X${java_non_standard_options} -D${java_properties} -Dapp=NiFi'
-      NIFI_LOG_DIR: /var/log/nifi
       NIFI_PID_DIR: '${nifi_home}'
       NIFI_SEED: '${nifi_sensitive_props_key}'
       NIFI_CMF_ADMINS: '${nifi_tenants_admins}'
@@ -123,7 +125,6 @@ roles:
 #      JAVA_HOME: '${java_home}'
 #      NIFI_HOME: '${nifi_home}'
 #      NIFI_JAVA_OPTS: '-D${java_properties}'
-#      NIFI_LOG_DIR: /var/log/nifi
 #      NIFI_PID_DIR: '${nifi_home}'
 
   commands:
@@ -184,7 +185,7 @@ roles:
 
   topology:
     minInstances: 0
-    softMinInstances: 3
+    softMinInstances: 2
 
   kerberosPrincipals:
   - name: nifi_principal
@@ -199,7 +200,7 @@ roles:
 
   logging:
     dir: /var/log/nifi
-    filename: nifi.log
+    filename: "${user}.log"
     loggingType: logback
     modifiable: true
     additionalConfigs:
