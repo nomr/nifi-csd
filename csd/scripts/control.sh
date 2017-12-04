@@ -420,6 +420,7 @@ nifi_start() {
     CLASSPATH="${CONF_DIR}"
     [ -e "${CONF_DIR}/hadoop-conf" ] && CLASSPATH="${CLASSPATH}:${CONF_DIR}/hadoop-conf"
     [ -e "${CONF_DIR}/hbase-conf" ] && CLASSPATH="${CLASSPATH}:${CONF_DIR}/hbase-conf"
+    [ -e "${CONF_DIR}/hive-conf" ] && CLASSPATH="${CLASSPATH}:${CONF_DIR}/hive-conf"
 
     IFS=':' read -ra parcel_dirnames <<< ${PARCEL_DIRNAMES}
     for p in "${parcel_dirnames[@]}"; do
