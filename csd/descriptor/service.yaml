@@ -32,8 +32,6 @@ serviceDependencies:
 - name: HDFS
 - name: HBASE
 - name: HIVE
-- name: SOLR
-- name: KUDU
 
 hdfsDirs:
 - name: CreateHDFSDirCommand
