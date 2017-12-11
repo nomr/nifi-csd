@@ -22,17 +22,7 @@ set -efu -o pipefail
 NIFI_COMMON_SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/common.sh"
 . ${NIFI_COMMON_SCRIPT}
 
-NIFI_TLS_ENABLED=true
-pki_init() {
-    NIFI_TLS_ENABLED=false
-    return 0
-}
-pki_get_default_subject_suffix() {
-    return 0
-}
-if [ -e pki-conf/init.sh ]; then
-  . pki-conf/init.sh
-fi
+NIFI_TLS_ENABLED=${PKI_ENABLED:-false}
 
 unlimitFD() {
     # Use the maximum available, or set MAX_FD != -1 to use that
@@ -92,9 +82,11 @@ nifi_create_certificates() {
 
     # TLS Client Init
     export PKI_CSR_OUS="${KRB5_USER}@${KRB5_REALM}"
-    pki_init
-
-    DN_SUFFIX=", OU=${PKI_CSR_OUS}$(pki_get_default_subject_suffix)"
+    DN_SUFFIX=", OU=${PKI_CSR_OUS}"
+    if [ ${NIFI_TLS_ENABLED} == "true" ]; then
+        pki_init
+        DN_SUFFIX="${DN_SUFFIX}$(pki_get_default_subject_suffix)"
+    fi
 }
 
 nifi_init() {
