@@ -22,12 +22,13 @@ set -efu -o pipefail
 NIFI_COMMON_SCRIPT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )/common.sh"
 . ${NIFI_COMMON_SCRIPT}
 
-NIFI_TLS_ENABLED=false
-tls_client_init() {
+NIFI_TLS_ENABLED=true
+pki_init() {
+    NIFI_TLS_ENABLED=false
     return 0
 }
-if [ -e tls-conf/client.sh ]; then
-  . tls-conf/client.sh
+if [ -e pki-conf/init.sh ]; then
+  . pki-conf/init.sh
 fi
 
 unlimitFD() {
@@ -73,13 +74,6 @@ locate_java8_home() {
     fi
 }
 
-get_property() {
-    local file=$1
-    local key=$2
-    local line=$(grep "$key=" ${file}.properties | tail -1)
-    echo "${line/$key=/}"
-}
-
 #TODO: replace with sed
 insert_if_not_exists() {
     LINE=$1
@@ -89,6 +83,17 @@ insert_if_not_exists() {
     fi
 }
 
+nifi_create_certificates() {
+    local KRB5_USER=$(echo ${nifi_principal} | cut -d '/' -f 1)
+    local KRB5_REALM=$(echo ${nifi_principal} | cut -d '@' -f 2)
+
+    # TLS Client Init
+    export PKI_CSR_OUS="${KRB5_USER}@${KRB5_REALM}"
+    pki_init
+
+    DN_SUFFIX=", OU=${PKI_CSR_OUS}$(pki_get_default_subject_suffix)"
+}
+
 nifi_init() {
     # Unlimit the number of file descriptors if possible
     unlimitFD
@@ -96,10 +101,8 @@ nifi_init() {
     # NiFi 1.4.0 was compiled with 1.8.0
     locate_java8_home $1
 
-    # TLS Client Init
-    DN_PREFIX="CN="
-    DN_SUFFIX=", OU=$(echo ${nifi_principal} | cut -d '/' -f 1), OU=$(echo ${nifi_principal} | cut -d '@' -f 2)"
-    tls_client_init
+    # PKI Init
+    nifi_create_certificates
 
     # Simulate NIFI_HOME
     [ -d conf ] || mkdir conf
@@ -112,7 +115,6 @@ nifi_init() {
 
     # Update jaas.conf
     update_jaas_conf
-
 
     [ -e 'login-identity-providers.xml' ] || create_login_identity_providers_xml
     [ -e 'state-management.xml' ] || create_state_management_xml
@@ -286,7 +288,7 @@ create_tenants_nodes_hadoop_xml() {
       CMF_NODES_USER_GUIDS+=($node_guid)
       echo '  <property>' >> $out
       echo "    <name>${node_guid}</name>" >> $out
-      echo "    <value>${DN_PREFIX}${node_name}${DN_SUFFIX}</value>" >> $out
+      echo "    <value>CN=${node_name}${DN_SUFFIX}</value>" >> $out
       echo '  </property>' >> $out
     done
 

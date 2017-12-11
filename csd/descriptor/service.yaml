@@ -23,12 +23,13 @@ parcel:
   repoUrl: https://github.com/nomr/nifi-parcel/releases/download/v1.4.0+nifi0.6.1
   requiredTags: [nifi]
   optionalTags:
+  - pki
   - hadoop_lzo
 
 serviceDependencies:
 - name: ZOOKEEPER
   required: 'true'
-- name: NIFI_TLS
+- name: PKI
 - name: HDFS
 - name: HBASE
 - name: HIVE
@@ -1006,11 +1007,13 @@ roles:
     initType: randomBase64
 
   - name: ssl_subject_alternate_names
-    configName: domainAlternativeNames
+    configName: CSR_SAN
     label: NiFi-TLS Domain Alternative Names
     description: The alternative domains used in the TLS certificates.
     required: false
     type: uri_array
+    separator: '","'
+    default:
 
   configWriter:
     auxConfigGenerators:
@@ -1329,18 +1332,27 @@ roles:
       - {key: Access Control, value: '${state_management_zk_provider_access_control}'}
       - {key: cdh.stateManagement.provider.type, value: cluster-provider}
 
-    - filename: tls-conf/tls-client.hadoop_xml
-      configFormat: hadoop_xml
+    - filename: pki-conf/client-csr.vars
+      configFormat: properties
       includedParams:
       - ssl_subject_alternate_names
       additionalConfigs:
-      - key: dn
-        value: '@@DN_PREFIX@@${host}@@DN_SUFFIX@@'
-      - {key: keyStore, value: 'keystore.jks'}
-      - {key: keyStorePassword, value: '${ssl_server_keystore_password}'}
-      - {key: keyPassword, value: '${ssl_server_keystore_password}'}
-      - {key: trustStore, value: 'truststore.jks'}
-      - {key: trustStorePassword, value: '${ssl_client_truststore_password}'}
+      - key: CSR_CN
+        value: "${host}"
+      - key: CSR_KEY_ALGO
+        value: rsa
+      - key: CSR_KEY_SIZE
+        value: 4096
+      - key: KEYSTORE_LOCATION
+        value: 'keystore.jks'
+      - key: KEYSTORE_PASSWORD
+        value: '${ssl_server_keystore_password}'
+      - key: KEY_PASSWORD
+        value: '${ssl_server_keystore_password}'
+      - key: TRUSTSTORE_LOCATION
+        value: 'truststore.jks'
+      - key: TRUSTSTORE_PASSWORD
+        value: '${ssl_client_truststore_password}'
 
     - filename: nifi-reset.properties
       configFormat: properties
