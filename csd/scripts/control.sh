@@ -27,6 +27,9 @@ pki_init() {
     NIFI_TLS_ENABLED=false
     return 0
 }
+pki_get_default_subject_suffix() {
+    return 0
+}
 if [ -e pki-conf/init.sh ]; then
   . pki-conf/init.sh
 fi
